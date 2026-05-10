@@ -32,7 +32,10 @@ impl TaskExecutor {
                 let msg = Message::LogFragment { task_name: t_name.clone(), content: line };
                 let mut msg_str = serde_json::to_string(&msg).unwrap();
                 msg_str.push('\n');
-                let _ = stdout_stream.write_all(msg_str.as_bytes());
+
+                if stdout_stream.write_all(msg_str.as_bytes()).is_err() {
+                    break; 
+                }
             }
         });
 
@@ -42,7 +45,10 @@ impl TaskExecutor {
                 let msg = Message::LogFragment { task_name: t_name_err.clone(), content: format!("[ERR] {}", line) };
                 let mut msg_str = serde_json::to_string(&msg).unwrap();
                 msg_str.push('\n');
-                let _ = stderr_stream.write_all(msg_str.as_bytes());
+                
+                if stderr_stream.write_all(msg_str.as_bytes()).is_err() {
+                    break; 
+                }
             }
         });
 
