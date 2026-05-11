@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Message {
@@ -7,5 +7,5 @@ pub enum Message {
     LogFragment { task_name: String, content: String },
 
     AssignTask { task_name: String, command: String },
-    Heartbeat
+    Heartbeat,
 }

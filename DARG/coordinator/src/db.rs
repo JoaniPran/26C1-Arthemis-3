@@ -48,16 +48,14 @@ impl Database {
                 FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 FOREIGN KEY(depends_on_id) REFERENCES tasks(id) ON DELETE CASCADE
             );
-            "
+            ",
         )?;
         Ok(())
     }
 
     pub fn insert_workflow(&self, name: &str) -> Result<i32> {
-        self.conn.execute(
-            "INSERT INTO workflows (name) VALUES (?1)",
-            params![name],
-        )?;
+        self.conn
+            .execute("INSERT INTO workflows (name) VALUES (?1)", params![name])?;
         let id = self.conn.last_insert_rowid();
         Ok(id as i32)
     }
@@ -97,9 +95,9 @@ impl Database {
                  FROM dependencies d 
                  JOIN tasks t ON d.depends_on_id = t.id 
                  WHERE t.status != 'SUCCESS'
-             )"
+             )",
         )?;
-        
+
         let task_iter = stmt.query_map([], |row| {
             Ok(TaskRecord {
                 id: row.get(0)?,

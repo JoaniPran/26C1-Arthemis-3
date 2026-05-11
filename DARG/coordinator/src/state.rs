@@ -25,12 +25,15 @@ impl CoordinatorState {
 
     pub fn add_worker(&self, id: String, stream: TcpStream) {
         let mut map = self.workers.lock().unwrap();
-        map.insert(id, WorkerInfo {
-            stream: stream,
-            last_seen: Instant::now(), 
-            is_busy: false,
-            assigned_task_id: None,
-        });
+        map.insert(
+            id,
+            WorkerInfo {
+                stream: stream,
+                last_seen: Instant::now(),
+                is_busy: false,
+                assigned_task_id: None,
+            },
+        );
     }
 
     pub fn remove_worker(&self, id: &str) -> Option<i32> {
@@ -44,7 +47,7 @@ impl CoordinatorState {
 
     pub fn update_heartbeat(&self, id: &str) {
         let mut map = self.workers.lock().unwrap();
-        
+
         if let Some(info) = map.get_mut(id) {
             info.last_seen = Instant::now();
         }
@@ -85,7 +88,7 @@ impl CoordinatorState {
     //     let map = self.workers.lock().unwrap();
     //     let timeout = Duration::from_secs(timeout_secs);
     //     let now = Instant::now();
-        
+
     //     map.iter()
     //         .filter_map(|(id, info)| {
     //             if now.duration_since(info.last_seen) > timeout {
@@ -101,14 +104,14 @@ impl CoordinatorState {
         let mut map = self.workers.lock().unwrap();
         let timeout = Duration::from_secs(timeout_secs);
         let now = Instant::now();
-        
+
         let mut dead = Vec::new();
         map.retain(|id, info| {
             if now.duration_since(info.last_seen) > timeout {
                 dead.push((id.clone(), info.assigned_task_id));
-                false 
+                false
             } else {
-                true 
+                true
             }
         });
         dead

@@ -1,11 +1,21 @@
+mod client;
 mod executor;
 mod heartbeat;
-mod client;
+
+use std::env;
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let worker_id = args.get(1).cloned().unwrap_or_else(|| "worker-default".to_string());
+    let worker_id = env::args().nth(1).unwrap_or_else(|| {
+        println!("No se especifico ID para el worker. Usando 'worker-default'.");
+        "worker-default".to_string()
+    });
 
-    println!("Starting Worker: {}", worker_id);
-    client::run(worker_id, "127.0.0.1:8080");
+    let server_addr = env::args()
+        .nth(2)
+        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+
+    println!("Iniciando Worker: {}...", worker_id);
+    println!("Intentando conectar al Coordinador en {}...", server_addr);
+
+    client::run(worker_id, &server_addr);
 }

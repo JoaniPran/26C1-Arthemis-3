@@ -1,61 +1,95 @@
-use std::io::{BufRead, BufReader, Write};
+use common::Message;
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::process::{Command, Stdio};
 use std::thread;
-use common::Message;
 
 pub struct TaskExecutor;
 
 impl TaskExecutor {
     pub fn execute(task_name: String, command_str: &str, stream: &mut TcpStream) -> i32 {
         let parts: Vec<&str> = command_str.split_whitespace().collect();
-        if parts.is_empty() { return -1; }
+        if parts.is_empty() {
+            return -1;
+        }
 
-        let mut child = Command::new(parts[0])
+        let mut child = match Command::new(parts[0])
             .args(&parts[1..])
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("Fallo al iniciar el comando");
+        {
+            Ok(child_process) => child_process,
+            Err(e) => {
+                let err_msg = format!(
+                    "[CRÍTICO] Error del SO al iniciar comando '{}': {}",
+                    parts[0], e
+                );
+                let _ = Self::send_log_fragment(stream, &task_name, &err_msg);
+                return 127;
+            }
+        };
 
-        let mut stdout_stream = stream.try_clone().expect("Error al clonar stream");
-        let mut stderr_stream = stream.try_clone().expect("Error al clonar stream");
-        let t_name = task_name.clone();
-        let t_name_err = task_name.clone();
+        let stream_stdout = match stream.try_clone() {
+            Ok(s) => s,
+            Err(e) => {
+                println!("Error crítico al clonar socket para stdout: {}", e);
+                return -1;
+            }
+        };
+        let stream_stderr = match stream.try_clone() {
+            Ok(s) => s,
+            Err(e) => {
+                println!("Error crítico al clonar socket para stderr: {}", e);
+                return -1;
+            }
+        };
 
-        let child_stdout = child.stdout.take().expect("No se pudo capturar stdout");
-        let child_stderr = child.stderr.take().expect("No se pudo capturar stderr");
+        let t_name_out = task_name.clone();
+        let t_name_err = task_name;
+
+        let child_stdout = child.stdout.take().expect("Stdout piped pero no capturado");
+        let child_stderr = child.stderr.take().expect("Stderr piped pero no capturado");
 
         let stdout_handle = thread::spawn(move || {
-            let reader = BufReader::new(child_stdout);
-            for line in reader.lines().map_while(Result::ok) {
-                let msg = Message::LogFragment { task_name: t_name.clone(), content: line };
-                let mut msg_str = serde_json::to_string(&msg).unwrap();
-                msg_str.push('\n');
-
-                if stdout_stream.write_all(msg_str.as_bytes()).is_err() {
-                    break; 
-                }
-            }
+            Self::stream_output_to_network(child_stdout, stream_stdout, t_name_out);
         });
 
         let stderr_handle = thread::spawn(move || {
-            let reader = BufReader::new(child_stderr);
-            for line in reader.lines().map_while(Result::ok) {
-                let msg = Message::LogFragment { task_name: t_name_err.clone(), content: format!("[ERR] {}", line) };
-                let mut msg_str = serde_json::to_string(&msg).unwrap();
-                msg_str.push('\n');
-                
-                if stderr_stream.write_all(msg_str.as_bytes()).is_err() {
-                    break; 
-                }
-            }
+            Self::stream_output_to_network(child_stderr, stream_stderr, t_name_err);
         });
 
         stdout_handle.join().ok();
         stderr_handle.join().ok();
 
-        child.wait().map(|s| s.code().unwrap_or(0)).unwrap_or(1)
+        child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1)
+    }
+
+    fn stream_output_to_network<R: Read>(reader: R, mut net_stream: TcpStream, task_name: String) {
+        let buf_reader = BufReader::new(reader);
+
+        for line in buf_reader.lines().map_while(Result::ok) {
+            if Self::send_log_fragment(&mut net_stream, &task_name, &line).is_err() {
+                break;
+            }
+        }
+    }
+
+    fn send_log_fragment(
+        stream: &mut TcpStream,
+        task_name: &str,
+        content: &str,
+    ) -> std::io::Result<()> {
+        let msg = Message::LogFragment {
+            task_name: task_name.to_string(),
+            content: content.to_string(),
+        };
+
+        let mut msg_str = serde_json::to_string(&msg)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+        msg_str.push('\n');
+        stream.write_all(msg_str.as_bytes())
     }
 }
 
@@ -66,23 +100,21 @@ fn run_external_command(command_str: &str) -> i32 {
     println!("Ejecutando (Modo Test): {}", command_str);
 
     let parts: Vec<&str> = command_str.split_whitespace().collect();
-    if parts.is_empty() { return -1; }
+    if parts.is_empty() {
+        return -1;
+    }
 
-    let process = Command::new(parts[0])
-        .args(&parts[1..])
-        .spawn();
+    let process = Command::new(parts[0]).args(&parts[1..]).spawn();
 
     match process {
-        Ok(mut child) => {
-            match child.wait() {
-                Ok(status) => {
-                    let code = status.code().unwrap_or(1);
-                    println!("Proceso terminado con código: {}", code);
-                    code
-                }
-                Err(_) => 1,
+        Ok(mut child) => match child.wait() {
+            Ok(status) => {
+                let code = status.code().unwrap_or(1);
+                println!("Proceso terminado con código: {}", code);
+                code
             }
-        }
+            Err(_) => 1,
+        },
         Err(e) => {
             eprintln!("Error al iniciar el comando: {}", e);
             -1
@@ -102,12 +134,18 @@ mod tests {
         let cmd = "cmd /C dir";
 
         let code = run_external_command(cmd);
-        assert_eq!(code, 0, "El comando debería haber terminado con éxito (código 0)");
+        assert_eq!(
+            code, 0,
+            "El comando debería haber terminado con éxito (código 0)"
+        );
     }
 
     #[test]
     fn test_execute_failing_command() {
         let code = run_external_command("not-a-real-command-12345");
-        assert_ne!(code, 0, "Un comando inexistente no debería devolver código 0");
+        assert_ne!(
+            code, 0,
+            "Un comando inexistente no debería devolver código 0"
+        );
     }
 }

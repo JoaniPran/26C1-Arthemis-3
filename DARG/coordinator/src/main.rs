@@ -1,20 +1,22 @@
-mod state;
-mod handler;
-mod supervisor;
 mod db;
+mod handler;
+mod state;
+mod supervisor;
 
+use common::Message;
+use db::Database;
+use handler::WorkerHandler;
+use state::CoordinatorState;
+use std::io::Write;
 use std::net::TcpListener;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::sync::{Arc, Mutex};
-use std::io::Write;
-use state::CoordinatorState;
-use handler::WorkerHandler;
-use db::Database;
-use common::Message;
 
 fn main() {
-    let port = std::env::args().nth(1).unwrap_or_else(|| "8080".to_string());
+    let port = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "8080".to_string());
     start_server(&port);
 }
 
@@ -24,7 +26,9 @@ fn start_server(port: &str) {
     println!("Inicializando base de datos SQLite...");
     let db_instance = Database::new("arthemis.db").expect("Fallo al crear la base de datos");
 
-    db_instance.reset_all_running_tasks().expect("Error al limpiar tareas huérfanas");
+    db_instance
+        .reset_all_running_tasks()
+        .expect("Error al limpiar tareas huérfanas");
     println!("Base de datos lista y recuperada.");
 
     // ---------------------------------------------------------
@@ -33,9 +37,15 @@ fn start_server(port: &str) {
     println!("Procesando flujo de trabajo...");
     match db_instance.insert_workflow("Pipeline_Ejemplo") {
         Ok(wf_id) => {
-            let t1 = db_instance.insert_task(wf_id, "Compilar", "ping 127.0.0.1 -c 15").unwrap();
-            let t2 = db_instance.insert_task(wf_id, "Testear", "cargo test").unwrap();
-            let t3 = db_instance.insert_task(wf_id, "Deploy", "echo 'Success'").unwrap();
+            let t1 = db_instance
+                .insert_task(wf_id, "Compilar", "ping 127.0.0.1 -c 15")
+                .unwrap();
+            let t2 = db_instance
+                .insert_task(wf_id, "Testear", "cargo test")
+                .unwrap();
+            let t3 = db_instance
+                .insert_task(wf_id, "Deploy", "echo 'Success'")
+                .unwrap();
 
             db_instance.insert_dependency(t2, t1).unwrap();
             db_instance.insert_dependency(t3, t2).unwrap();
@@ -62,24 +72,24 @@ fn start_server(port: &str) {
     thread::spawn(move || {
         loop {
             thread::sleep(Duration::from_secs(2));
-            
+
             let db = db_dispatcher.lock().unwrap();
             if let Ok(ready_tasks) = db.get_ready_tasks() {
                 for task in ready_tasks {
                     if let Some((worker_id, mut stream)) = state_dispatcher.assign_worker(task.id) {
                         println!("Asignando tarea '{}' al worker {}", task.name, worker_id);
-                        
+
                         let _ = db.update_task_status(task.id, "RUNNING");
-                        
-                        let assign_msg = Message::AssignTask { 
-                            task_name: task.name.clone(), 
-                            command: task.command.clone() 
+
+                        let assign_msg = Message::AssignTask {
+                            task_name: task.name.clone(),
+                            command: task.command.clone(),
                         };
                         let mut json_msg = serde_json::to_string(&assign_msg).unwrap();
                         json_msg.push('\n');
                         let _ = stream.write_all(json_msg.as_bytes());
                     } else {
-                        break; 
+                        break;
                     }
                 }
             }
