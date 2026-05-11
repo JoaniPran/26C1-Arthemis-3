@@ -1,25 +1,29 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
 use common::Message;
 use crate::state::CoordinatorState;
+use crate::db::Database;
 
 pub struct WorkerHandler {
     stream: TcpStream,
     state: CoordinatorState,
+    database: Arc<Mutex<Database>>,
     worker_id: Option<String>,
 }
 
 impl WorkerHandler {
-    pub fn new(stream: TcpStream, state: CoordinatorState) -> Self {
+    pub fn new(stream: TcpStream, state: CoordinatorState, database: Arc<Mutex<Database>>) -> Self {
         Self {
             stream,
             state,
+            database,
             worker_id: None,
         }
     }
 
-    pub fn handle_connection(stream: TcpStream, state: CoordinatorState) {
-        let handler = WorkerHandler::new(stream, state);
+    pub fn handle_connection(stream: TcpStream, state: CoordinatorState, database: Arc<Mutex<Database>>) {
+        let handler = WorkerHandler::new(stream, state, database);
         handler.run();
     }
 
@@ -55,17 +59,16 @@ impl WorkerHandler {
     fn handle_register(&mut self, id: String) {
         self.worker_id = Some(id.clone());
 
+        let task_id_opt = self.state.remove_worker(&id);
+
+        if let Some(task_id) = task_id_opt {
+            println!("MANEJADOR: Worker {} reconectó antes del timeout. Reasignando tarea previa (ID: {}) a PENDING...", id, task_id);
+            let db = self.database.lock().unwrap();
+            let _ = db.update_task_status(task_id, "PENDING");
+        }
+
         self.state.add_worker(id.clone(), self.stream.try_clone().expect("Error al clonar stream"));
         println!("Worker registrado: {}.", id);
-
-        let assign_msg = Message::AssignTask {
-            task_name: "Prueba_Streaming".to_string(),
-            command: "ping 127.0.0.1 -c 6".to_string()
-        };
-        let mut json_msg = serde_json::to_string(&assign_msg).unwrap();
-        json_msg.push('\n');
-
-        let _ = self.stream.write_all(json_msg.as_bytes());
     }
 
     fn handle_log(&mut self, task_name: String, content: String) {
@@ -80,12 +83,28 @@ impl WorkerHandler {
 
     fn handle_status(&self, task_name: String, status: String) {
         println!("Tarea '{}' finalizada con estado: {}", task_name, status);
+
+        let final_status = if status == "Success" { "SUCCESS" } else { "FAILED" };
+        let db = self.database.lock().unwrap();
+        let _ = db.update_task_status_by_name(&task_name, final_status);
+        drop(db);
+
+        if let Some(id) = &self.worker_id {
+            self.state.set_worker_free(id);
+            println!("Worker {} ahora está libre.", id);
+        }
     }
 
     fn cleanup(&self) {
         if let Some(id) = &self.worker_id {
-            self.state.remove_worker(id);
+            let task_id_opt = self.state.remove_worker(id);
             println!("Worker {} desconectado.", id);
+
+            if let Some(task_id) = task_id_opt {
+                println!("MANEJADOR: Reasignando tarea huérfana (ID: {}) a PENDING...", task_id);
+                let db = self.database.lock().unwrap();
+                let _ = db.update_task_status(task_id, "PENDING");
+            }
         }
     }
 }
