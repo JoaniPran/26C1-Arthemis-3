@@ -86,33 +86,39 @@ fn start_dispatcher(state: CoordinatorState, database: SharedDatabase) {
             thread::sleep(Duration::from_secs(2));
 
             let db = database.lock().unwrap();
-            if let Ok(ready_tasks) = db.get_ready_tasks() {
-                for task in ready_tasks {
-                    if let Some((worker_id, mut stream)) = state.assign_worker(task.id) {
-                        println!("Asignando tarea '{}' al worker {}", task.name, worker_id);
+            
+            match db.get_ready_tasks() {
+                Ok(ready_tasks) => {
+                    for task in ready_tasks {
+                        if let Some((worker_id, mut stream)) = state.assign_worker(task.id) {
+                            println!("Asignando tarea '{}' al worker {}", task.name, worker_id);
 
-                        let _ = db.update_task_status(task.id, TaskStatus::Running);
+                            let _ = db.update_task_status(task.id, TaskStatus::Running);
 
-                        let assign_msg = Message::AssignTask {
-                            task_name: task.name.clone(),
-                            command: task.command.clone(),
-                        };
+                            let assign_msg = Message::AssignTask {
+                                task_name: task.name.clone(),
+                                command: task.command.clone(),
+                            };
 
-                        if let Ok(mut json_msg) = serde_json::to_string(&assign_msg) {
-                            json_msg.push('\n');
+                            if let Ok(mut json_msg) = serde_json::to_string(&assign_msg) {
+                                json_msg.push('\n');
 
-                            if stream.write_all(json_msg.as_bytes()).is_err() {
-                                println!(
-                                    "Fallo al enviar la tarea '{}' al worker {}. Revertiendo...",
-                                    task.name, worker_id
-                                );
-                                let _ = db.update_task_status(task.id, TaskStatus::Pending);
-                                state.set_worker_free(&worker_id);
+                                if stream.write_all(json_msg.as_bytes()).is_err() {
+                                    println!(
+                                        "Fallo al enviar la tarea '{}' al worker {}. Revertiendo...",
+                                        task.name, worker_id
+                                    );
+                                    let _ = db.update_task_status(task.id, TaskStatus::Pending);
+                                    state.set_worker_free(&worker_id);
+                                }
                             }
+                        } else {
+                            break;
                         }
-                    } else {
-                        break;
                     }
+                }
+                Err(e) => {
+                    println!("Error interno al consultar tareas listas: {}", e);
                 }
             }
         }

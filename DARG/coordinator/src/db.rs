@@ -110,7 +110,7 @@ impl Database {
 
     pub fn get_ready_tasks(&self) -> Result<Vec<TaskRecord>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, workflow_id, name, command, status 
+            "SELECT id, name, command
              FROM tasks 
              WHERE status = 'PENDING' 
              AND id NOT IN (
