@@ -3,11 +3,9 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-#[allow(dead_code)]
 pub struct WorkerInfo {
     pub stream: TcpStream,
     pub last_seen: Instant,
-    pub is_busy: bool,
     pub assigned_task_id: Option<i32>,
 }
 
@@ -30,7 +28,6 @@ impl CoordinatorState {
             WorkerInfo {
                 stream: stream,
                 last_seen: Instant::now(),
-                is_busy: false,
                 assigned_task_id: None,
             },
         );
@@ -38,16 +35,11 @@ impl CoordinatorState {
 
     pub fn remove_worker(&self, id: &str) -> Option<i32> {
         let mut map = self.workers.lock().unwrap();
-        if let Some(info) = map.remove(id) {
-            info.assigned_task_id
-        } else {
-            None
-        }
+        map.remove(id).and_then(|info| info.assigned_task_id)
     }
 
     pub fn update_heartbeat(&self, id: &str) {
         let mut map = self.workers.lock().unwrap();
-
         if let Some(info) = map.get_mut(id) {
             info.last_seen = Instant::now();
         }
@@ -56,10 +48,11 @@ impl CoordinatorState {
     pub fn assign_worker(&self, task_id: i32) -> Option<(String, TcpStream)> {
         let mut map = self.workers.lock().unwrap();
         for (id, info) in map.iter_mut() {
-            if !info.is_busy {
-                info.is_busy = true;
-                info.assigned_task_id = Some(task_id);
-                return Some((id.clone(), info.stream.try_clone().unwrap()));
+            if info.assigned_task_id.is_none() {
+                if let Ok(stream_clone) = info.stream.try_clone() {
+                    info.assigned_task_id = Some(task_id);
+                    return Some((id.clone(), stream_clone));
+                }
             }
         }
         None
@@ -68,37 +61,9 @@ impl CoordinatorState {
     pub fn set_worker_free(&self, id: &str) {
         let mut map = self.workers.lock().unwrap();
         if let Some(info) = map.get_mut(id) {
-            info.is_busy = false;
             info.assigned_task_id = None;
         }
     }
-
-    // pub fn get_available_worker(&self) -> Option<(String, TcpStream)> {
-    //     let mut map = self.workers.lock().unwrap();
-    //     for (id, info) in map.iter_mut() {
-    //         if !info.is_busy {
-    //             info.is_busy = true;
-    //             return Some((id.clone(), info.stream.try_clone().unwrap()));
-    //         }
-    //     }
-    //     None
-    // }
-
-    // pub fn find_dead_workers(&self, timeout_secs: u64) -> Vec<String> {
-    //     let map = self.workers.lock().unwrap();
-    //     let timeout = Duration::from_secs(timeout_secs);
-    //     let now = Instant::now();
-
-    //     map.iter()
-    //         .filter_map(|(id, info)| {
-    //             if now.duration_since(info.last_seen) > timeout {
-    //                 Some(id.clone())
-    //             } else {
-    //                 None
-    //             }
-    //         })
-    //         .collect()
-    // }
 
     pub fn remove_dead_workers(&self, timeout_secs: u64) -> Vec<(String, Option<i32>)> {
         let mut map = self.workers.lock().unwrap();

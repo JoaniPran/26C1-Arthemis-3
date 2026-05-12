@@ -1,13 +1,30 @@
 use rusqlite::{Connection, Result, params};
+use std::fmt;
+
+#[derive(Debug, PartialEq)]
+pub enum TaskStatus {
+    Pending,
+    Running,
+    Success,
+    Failed,
+}
+
+impl fmt::Display for TaskStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TaskStatus::Pending => write!(f, "PENDING"),
+            TaskStatus::Running => write!(f, "RUNNING"),
+            TaskStatus::Success => write!(f, "SUCCESS"),
+            TaskStatus::Failed => write!(f, "FAILED"),
+        }
+    }
+}
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct TaskRecord {
     pub id: i32,
-    pub workflow_id: i32,
     pub name: String,
     pub command: String,
-    pub status: String,
 }
 
 pub struct Database {
@@ -17,10 +34,8 @@ pub struct Database {
 impl Database {
     pub fn new(db_path: &str) -> Result<Self> {
         let conn = Connection::open(db_path)?;
-
         let db = Database { conn };
         db.create_table()?;
-
         Ok(db)
     }
 
@@ -77,10 +92,18 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_task_status(&self, task_id: i32, new_status: &str) -> Result<()> {
+    pub fn update_task_status(&self, task_id: i32, status: TaskStatus) -> Result<()> {
         self.conn.execute(
             "UPDATE tasks SET status = ?1 WHERE id = ?2",
-            params![new_status, task_id],
+            params![status.to_string(), task_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_task_status_by_name(&self, name: &str, status: TaskStatus) -> Result<()> {
+        self.conn.execute(
+            "UPDATE tasks SET status = ?1 WHERE name = ?2",
+            params![status.to_string(), name],
         )?;
         Ok(())
     }
@@ -98,37 +121,19 @@ impl Database {
              )",
         )?;
 
-        let task_iter = stmt.query_map([], |row| {
+        let rows = stmt.query_map([], |row| {
             Ok(TaskRecord {
                 id: row.get(0)?,
-                workflow_id: row.get(1)?,
-                name: row.get(2)?,
-                command: row.get(3)?,
-                status: row.get(4)?,
+                name: row.get(1)?,
+                command: row.get(2)?,
             })
         })?;
 
         let mut tasks = Vec::new();
-        for task in task_iter {
+        for task in rows {
             tasks.push(task?);
         }
         Ok(tasks)
-    }
-
-    pub fn update_task_status_by_name(&self, name: &str, new_status: &str) -> Result<()> {
-        self.conn.execute(
-            "UPDATE tasks SET status = ?1 WHERE name = ?2",
-            params![new_status, name],
-        )?;
-        Ok(())
-    }
-
-    pub fn reset_all_running_tasks(&self) -> Result<()> {
-        self.conn.execute(
-            "UPDATE tasks SET status = 'PENDING' WHERE status = 'RUNNING'",
-            [],
-        )?;
-        Ok(())
     }
 
     pub fn get_workflow_id(&self, name: &str) -> Result<i32> {
@@ -143,6 +148,14 @@ impl Database {
         self.conn.execute(
             "UPDATE tasks SET status = 'PENDING' WHERE workflow_id = ?1",
             params![workflow_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn reset_all_running_tasks(&self) -> Result<()> {
+        self.conn.execute(
+            "UPDATE tasks SET status = 'PENDING' WHERE status = 'RUNNING'",
+            [],
         )?;
         Ok(())
     }
