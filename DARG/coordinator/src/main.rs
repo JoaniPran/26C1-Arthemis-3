@@ -7,12 +7,12 @@ use common::Message;
 use db::{Database, TaskStatus};
 use handler::WorkerHandler;
 use state::CoordinatorState;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::fs::OpenOptions;
 
 type SharedDatabase = Arc<Mutex<Database>>;
 
@@ -141,19 +141,23 @@ fn start_workflow_log_monitor(database: SharedDatabase, workflow_id: i32, workfl
             .open(&filename)
             .expect("No se pudo crear el archivo de logs");
 
-        let _ = writeln!(file, "=== INICIANDO LOGS EN TIEMPO REAL: {} ===", workflow_name);
+        let _ = writeln!(
+            file,
+            "=== INICIANDO LOGS EN TIEMPO REAL: {} ===",
+            workflow_name
+        );
 
         loop {
             thread::sleep(Duration::from_millis(500));
-            
+
             let db = database.lock().unwrap();
-            
+
             if let Ok(new_logs) = db.get_new_workflow_logs(workflow_id, last_id) {
                 if !new_logs.is_empty() {
                     for (log_id, task_name, content) in new_logs {
                         let _ = writeln!(file, "[{}] {}", task_name, content);
-                        
-                        last_id = log_id; 
+
+                        last_id = log_id;
                     }
                     let _ = file.flush();
                 }

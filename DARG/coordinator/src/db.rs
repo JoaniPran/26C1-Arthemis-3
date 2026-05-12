@@ -198,13 +198,17 @@ impl Database {
     //     Ok(logs)
     // }
 
-    pub fn get_new_workflow_logs(&self, workflow_id: i32, last_id: i32) -> Result<Vec<(i32, String, String)>> {
+    pub fn get_new_workflow_logs(
+        &self,
+        workflow_id: i32,
+        last_id: i32,
+    ) -> Result<Vec<(i32, String, String)>> {
         let mut stmt = self.conn.prepare(
             "SELECT l.id, t.name, l.log_line 
              FROM task_logs l 
              JOIN tasks t ON l.task_id = t.id 
              WHERE t.workflow_id = ?1 AND l.id > ?2 
-             ORDER BY l.id ASC"
+             ORDER BY l.id ASC",
         )?;
 
         let rows = stmt.query_map(params![workflow_id, last_id], |row| {
