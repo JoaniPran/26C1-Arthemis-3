@@ -63,6 +63,13 @@ impl Database {
                 FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 FOREIGN KEY(depends_on_id) REFERENCES tasks(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS task_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                log_line TEXT NOT NULL,
+                FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
+            );
             ",
         )?;
         Ok(())
@@ -100,13 +107,13 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_task_status_by_name(&self, name: &str, status: TaskStatus) -> Result<()> {
-        self.conn.execute(
-            "UPDATE tasks SET status = ?1 WHERE name = ?2",
-            params![status.to_string(), name],
-        )?;
-        Ok(())
-    }
+    // pub fn update_task_status_by_name(&self, name: &str, status: TaskStatus) -> Result<()> {
+    //     self.conn.execute(
+    //         "UPDATE tasks SET status = ?1 WHERE name = ?2",
+    //         params![status.to_string(), name],
+    //     )?;
+    //     Ok(())
+    // }
 
     pub fn get_ready_tasks(&self) -> Result<Vec<TaskRecord>> {
         let mut stmt = self.conn.prepare(
@@ -149,6 +156,11 @@ impl Database {
             "UPDATE tasks SET status = 'PENDING' WHERE workflow_id = ?1",
             params![workflow_id],
         )?;
+
+        self.conn.execute(
+            "DELETE FROM task_logs WHERE task_id IN (SELECT id FROM tasks WHERE workflow_id = ?1)",
+            params![workflow_id],
+        )?;
         Ok(())
     }
 
@@ -158,5 +170,51 @@ impl Database {
             [],
         )?;
         Ok(())
+    }
+
+    pub fn insert_log(&self, task_id: i32, log_line: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO task_logs (task_id, log_line) VALUES (?1, ?2)",
+            params![task_id, log_line],
+        )?;
+        Ok(())
+    }
+
+    // pub fn get_workflow_logs(&self, workflow_id: i32) -> Result<Vec<(String, String)>> {
+    //     let mut stmt = self.conn.prepare(
+    //         "SELECT t.name, l.log_line
+    //          FROM task_logs l
+    //          JOIN tasks t ON l.task_id = t.id
+    //          WHERE t.workflow_id = ?1
+    //          ORDER BY l.id ASC"
+    //     )?;
+
+    //     let rows = stmt.query_map(params![workflow_id], |row| {
+    //         Ok((row.get(0)?, row.get(1)?))
+    //     })?;
+
+    //     let mut logs = Vec::new();
+    //     for log in rows { logs.push(log?); }
+    //     Ok(logs)
+    // }
+
+    pub fn get_new_workflow_logs(&self, workflow_id: i32, last_id: i32) -> Result<Vec<(i32, String, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT l.id, t.name, l.log_line 
+             FROM task_logs l 
+             JOIN tasks t ON l.task_id = t.id 
+             WHERE t.workflow_id = ?1 AND l.id > ?2 
+             ORDER BY l.id ASC"
+        )?;
+
+        let rows = stmt.query_map(params![workflow_id, last_id], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+
+        let mut logs = Vec::new();
+        for log in rows {
+            logs.push(log?);
+        }
+        Ok(logs)
     }
 }

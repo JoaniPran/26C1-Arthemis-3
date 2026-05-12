@@ -49,14 +49,18 @@ fn handle_session(worker_id: &str, mut stream: TcpStream) -> IoResult<()> {
 
 fn process_message(text: &str, stream: &mut TcpStream) -> IoResult<()> {
     match serde_json::from_str::<Message>(text) {
-        Ok(Message::AssignTask { task_name, command }) => {
+        Ok(Message::AssignTask {
+            task_id,
+            task_name,
+            command,
+        }) => {
             println!("Tarea recibida: {} -> {}", task_name, command);
 
-            let code = TaskExecutor::execute(task_name.clone(), &command, stream);
+            let code = TaskExecutor::execute(task_id, &command, stream);
             let status = if code == 0 { "Success" } else { "Failed" };
 
             let resp_msg = Message::TaskStatus {
-                task_name,
+                task_id,
                 status: status.to_string(),
             };
             send_message(stream, &resp_msg)?;

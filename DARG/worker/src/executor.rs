@@ -7,7 +7,7 @@ use std::thread;
 pub struct TaskExecutor;
 
 impl TaskExecutor {
-    pub fn execute(task_name: String, command_str: &str, stream: &mut TcpStream) -> i32 {
+    pub fn execute(task_id: i32, command_str: &str, stream: &mut TcpStream) -> i32 {
         let parts: Vec<&str> = command_str.split_whitespace().collect();
         if parts.is_empty() {
             return -1;
@@ -25,7 +25,7 @@ impl TaskExecutor {
                     "[CRÍTICO] Error del SO al iniciar comando '{}': {}",
                     parts[0], e
                 );
-                let _ = Self::send_log_fragment(stream, &task_name, &err_msg);
+                let _ = Self::send_log_fragment(stream, task_id, &err_msg);
                 return 127;
             }
         };
@@ -45,18 +45,15 @@ impl TaskExecutor {
             }
         };
 
-        let t_name_out = task_name.clone();
-        let t_name_err = task_name;
-
         let child_stdout = child.stdout.take().expect("Stdout piped pero no capturado");
         let child_stderr = child.stderr.take().expect("Stderr piped pero no capturado");
 
         let stdout_handle = thread::spawn(move || {
-            Self::stream_output_to_network(child_stdout, stream_stdout, t_name_out);
+            Self::stream_output_to_network(child_stdout, stream_stdout, task_id);
         });
 
         let stderr_handle = thread::spawn(move || {
-            Self::stream_output_to_network(child_stderr, stream_stderr, t_name_err);
+            Self::stream_output_to_network(child_stderr, stream_stderr, task_id);
         });
 
         stdout_handle.join().ok();
@@ -65,11 +62,11 @@ impl TaskExecutor {
         child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1)
     }
 
-    fn stream_output_to_network<R: Read>(reader: R, mut net_stream: TcpStream, task_name: String) {
+    fn stream_output_to_network<R: Read>(reader: R, mut net_stream: TcpStream, task_id: i32) {
         let buf_reader = BufReader::new(reader);
 
         for line in buf_reader.lines().map_while(Result::ok) {
-            if Self::send_log_fragment(&mut net_stream, &task_name, &line).is_err() {
+            if Self::send_log_fragment(&mut net_stream, task_id, &line).is_err() {
                 break;
             }
         }
@@ -77,11 +74,11 @@ impl TaskExecutor {
 
     fn send_log_fragment(
         stream: &mut TcpStream,
-        task_name: &str,
+        task_id: i32,
         content: &str,
     ) -> std::io::Result<()> {
         let msg = Message::LogFragment {
-            task_name: task_name.to_string(),
+            task_id,
             content: content.to_string(),
         };
 

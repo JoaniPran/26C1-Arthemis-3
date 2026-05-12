@@ -53,8 +53,8 @@ impl WorkerHandler {
         match serde_json::from_str::<Message>(text) {
             Ok(Message::RegisterWorker { id }) => self.handle_register(id),
             Ok(Message::Heartbeat) => self.handle_heartbeat(),
-            Ok(Message::TaskStatus { task_name, status }) => self.handle_status(task_name, status),
-            Ok(Message::LogFragment { task_name, content }) => self.handle_log(task_name, content),
+            Ok(Message::TaskStatus { task_id, status }) => self.handle_status(task_id, status),
+            Ok(Message::LogFragment { task_id, content }) => self.handle_log(task_id, content),
             Ok(Message::AssignTask { .. }) => {}
             Err(e) => println!("Recibido mensaje malformado: {}. Contenido: {}", e, text),
         }
@@ -89,9 +89,7 @@ impl WorkerHandler {
         }
     }
 
-    fn handle_status(&self, task_name: String, status: String) {
-        println!("Tarea '{}' finalizada con estado: {}", task_name, status);
-
+    fn handle_status(&self, task_id: i32, status: String) {
         let final_status = if status == "Success" {
             TaskStatus::Success
         } else {
@@ -99,18 +97,24 @@ impl WorkerHandler {
         };
 
         let db = self.database.lock().unwrap();
-        let _ = db.update_task_status_by_name(&task_name, final_status);
+        let _ = db.update_task_status(task_id, final_status);
 
         drop(db);
 
         if let Some(id) = &self.worker_id {
             self.state.set_worker_free(id);
-            println!("Worker {} ahora está libre.", id);
+            println!(
+                "Worker {} completó la Tarea ID: {} y ahora está libre.",
+                id, task_id
+            );
         }
     }
 
-    fn handle_log(&mut self, task_name: String, content: String) {
-        println!("[{}] LOG: {}", task_name, content);
+    fn handle_log(&mut self, task_id: i32, content: String) {
+        let db = self.database.lock().unwrap();
+        if let Err(e) = db.insert_log(task_id, &content) {
+            println!("Error guardando log en BD (Tarea {}): {}", task_id, e);
+        }
     }
 
     fn cleanup(&self) {
