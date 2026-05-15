@@ -1,33 +1,48 @@
 === INICIANDO LOGS EN TIEMPO REAL: Pipeline_Ejemplo ===
 [Compilar] PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.043 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.062 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=3 ttl=64 time=0.072 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=4 ttl=64 time=0.072 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=5 ttl=64 time=0.065 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=6 ttl=64 time=0.063 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=7 ttl=64 time=0.073 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=8 ttl=64 time=0.072 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=9 ttl=64 time=0.058 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=10 ttl=64 time=0.072 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=11 ttl=64 time=0.066 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=12 ttl=64 time=0.061 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=13 ttl=64 time=0.060 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=14 ttl=64 time=0.072 ms
-[Compilar] 64 bytes from 127.0.0.1: icmp_seq=15 ttl=64 time=0.059 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.014 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.035 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=3 ttl=64 time=0.028 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=4 ttl=64 time=0.036 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=5 ttl=64 time=0.027 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=6 ttl=64 time=0.026 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=7 ttl=64 time=0.033 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=8 ttl=64 time=0.020 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=9 ttl=64 time=0.033 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=10 ttl=64 time=0.027 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=11 ttl=64 time=0.033 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=12 ttl=64 time=0.028 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=13 ttl=64 time=0.026 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=14 ttl=64 time=0.034 ms
+[Compilar] 64 bytes from 127.0.0.1: icmp_seq=15 ttl=64 time=0.027 ms
 [Compilar] 
 [Compilar] --- 127.0.0.1 ping statistics ---
-[Compilar] 15 packets transmitted, 15 received, 0% packet loss, time 14320ms
-[Compilar] rtt min/avg/max/mdev = 0.043/0.064/0.073/0.007 ms
-[Testear]    Compiling coordinator v0.1.0 (/home/gonzalo/Documentos/Taller/26C1-Arthemis-3/DARG/coordinator)
-[Testear]     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.32s
+[Compilar] 15 packets transmitted, 15 received, 0% packet loss, time 14332ms
+[Compilar] rtt min/avg/max/mdev = 0.014/0.028/0.036/0.005 ms
+[Testear]    Compiling coordinator v0.1.0 (/home/joani/Descargas/26C1-Arthemis-3/DARG/coordinator)
+[Testear] warning: methods `get_workflow_id` and `reset_workflow` are never used
+[Testear]   --> coordinator/src/db/tasks.rs:63:12
+[Testear]    |
+[Testear]  4 | impl Database {
+[Testear]    | ------------- methods in this implementation
+[Testear] ...
+[Testear] 63 |     pub fn get_workflow_id(&self, name: &str) -> Result<i32> {
+[Testear]    |            ^^^^^^^^^^^^^^^
+[Testear] ...
+[Testear] 71 |     pub fn reset_workflow(&self, workflow_id: i32) -> Result<()> {
+[Testear]    |            ^^^^^^^^^^^^^^
+[Testear]    |
+[Testear]    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+[Testear] 
+[Testear] warning: `coordinator` (bin "coordinator" test) generated 1 warning
+[Testear]     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
 [Testear]      Running unittests src/lib.rs (target/debug/deps/common-96e24529db229080)
 [Testear] 
 [Testear] running 0 tests
 [Testear] 
 [Testear] test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 [Testear] 
-[Testear]      Running unittests src/main.rs (target/debug/deps/coordinator-f307921de232be7e)
+[Testear]      Running unittests src/main.rs (target/debug/deps/coordinator-595dfef511698dcc)
 [Testear] 
 [Testear] running 0 tests
 [Testear] 
@@ -55,4 +70,4 @@
 [Testear] 
 [Testear] test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 [Testear] 
-[Deploy] 'Success'
+[Deploy] 'Desplegando en producción...'

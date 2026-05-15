@@ -1,5 +1,6 @@
 mod db;
 mod handler;
+mod parser;
 mod state;
 mod supervisor;
 
@@ -32,12 +33,28 @@ fn start_server(port: &str) {
         .reset_all_running_tasks()
         .expect("Error al limpiar tareas huérfanas");
 
-    inject_test_workflow(&db_instance);
+    let workflow_id = match parser::load_from_yaml(&db_instance, "workflow_ejemplo_1.yaml") {
+        Ok(id) => {
+            println!("YAML cargado exitosamente. ID: {}", id);
+            id
+        }
+        Err(e) => {
+            println!(
+                "Error cargando YAML: {}. Usando ID por defecto o saliendo.",
+                e
+            );
+           1 //manejar el error de forma más agresiva
+        }
+    };
 
     let database = Arc::new(Mutex::new(db_instance));
     let state = CoordinatorState::new();
 
-    start_workflow_log_monitor(database.clone(), 1, "Pipeline_Ejemplo".to_string());
+    start_workflow_log_monitor(
+        database.clone(),
+        workflow_id,
+        "Pipeline_Ejemplo".to_string(),
+    );
 
     supervisor::start_watchdog(state.clone(), database.clone());
     start_dispatcher(state.clone(), database.clone());
@@ -56,29 +73,6 @@ fn start_server(port: &str) {
                 });
             }
             Err(e) => println!("Error de conexión: {}.", e),
-        }
-    }
-}
-
-fn inject_test_workflow(db: &Database) {
-    println!("Procesando flujo de trabajo...");
-    match db.insert_workflow("Pipeline_Ejemplo") {
-        Ok(wf_id) => {
-            let t1 = db
-                .insert_task(wf_id, "Compilar", "ping 127.0.0.1 -c 15")
-                .unwrap();
-            let t2 = db.insert_task(wf_id, "Testear", "cargo test").unwrap();
-            let t3 = db.insert_task(wf_id, "Deploy", "echo 'Success'").unwrap();
-
-            db.insert_dependency(t2, t1).unwrap();
-            db.insert_dependency(t3, t2).unwrap();
-            println!("Flujo inyectado con ID: {}", wf_id);
-        }
-        Err(_) => {
-            if let Ok(wf_id) = db.get_workflow_id("Pipeline_Ejemplo") {
-                db.reset_workflow(wf_id).unwrap();
-                println!("Flujo 'Pipeline_Ejemplo' detectado. Reiniciando estados a PENDING.");
-            }
         }
     }
 }
