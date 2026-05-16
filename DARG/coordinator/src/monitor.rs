@@ -1,44 +1,54 @@
-use crate::SharedDatabase;
-use std::fs::OpenOptions;
+use std::collections::HashMap;
+use std::fs::{File, OpenOptions};
 use std::io::Write;
+use std::sync::mpsc::Receiver;
 use std::thread;
-use std::time::Duration;
 
-pub fn start_workflow_log_monitor(
-    database: SharedDatabase,
-    workflow_id: i32,
-    workflow_name: String,
-) {
+pub enum LogEvent {
+    StartWorkflow(String),
+    LogLine {
+        workflow_name: String,
+        task_name: String,
+        content: String,
+    },
+}
+
+pub fn start_global_log_monitor(rx: Receiver<LogEvent>) {
     thread::spawn(move || {
-        let filename = format!("{}_logs.txt", workflow_name);
-        let mut last_id = 0;
+        let mut open_files: HashMap<String, File> = HashMap::new();
 
-        let mut file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&filename)
-            .expect("No se pudo crear el archivo de logs");
-
-        let _ = writeln!(
-            file,
-            "=== INICIANDO LOGS EN TIEMPO REAL: {} ===",
-            workflow_name
-        );
-
-        loop {
-            thread::sleep(Duration::from_millis(500));
-
-            let db = database.lock().unwrap();
-
-            if let Ok(new_logs) = db.get_new_workflow_logs(workflow_id, last_id) {
-                if !new_logs.is_empty() {
-                    for (log_id, task_name, content) in new_logs {
-                        let _ = writeln!(file, "[{}] {}", task_name, content);
-
-                        last_id = log_id;
+        while let Ok(event) = rx.recv() {
+            match event {
+                LogEvent::StartWorkflow(name) => {
+                    let filename = format!("{}_logs.txt", name);
+                    if let Ok(mut file) = OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .truncate(true)
+                        .open(&filename)
+                    {
+                        let _ = writeln!(file, "=== INICIANDO LOGS EN TIEMPO REAL: {} ===", name);
+                        let _ = file.flush();
+                        open_files.insert(name, file);
                     }
-                    let _ = file.flush();
+                }
+                LogEvent::LogLine {
+                    workflow_name,
+                    task_name,
+                    content,
+                } => {
+                    let file_entry = open_files.entry(workflow_name.clone()).or_insert_with(|| {
+                        let filename = format!("{}_logs.txt", workflow_name);
+                        OpenOptions::new()
+                            .create(true)
+                            .write(true)
+                            .append(true)
+                            .open(&filename)
+                            .expect("No se pudo abrir el archivo de logs")
+                    });
+
+                    let _ = writeln!(file_entry, "[{}] {}", task_name, content);
+                    let _ = file_entry.flush();
                 }
             }
         }

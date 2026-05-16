@@ -12,7 +12,7 @@ use parser::start_workflow_watcher;
 use state::CoordinatorState;
 use std::io::Write;
 use std::net::TcpListener;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::Duration;
 
@@ -39,7 +39,11 @@ fn start_server(port: &str) {
     let folder = "./workflows".to_string();
     std::fs::create_dir_all(&folder).expect("No se pudo crear la carpeta");
 
-    start_workflow_watcher(database.clone(), folder);
+    let (log_tx, log_rx) = mpsc::channel();
+
+    monitor::start_global_log_monitor(log_rx);
+
+    start_workflow_watcher(database.clone(), folder, log_tx.clone());
 
     supervisor::start_watchdog(state.clone(), database.clone());
     start_dispatcher(state.clone(), database.clone());
@@ -52,9 +56,10 @@ fn start_server(port: &str) {
             Ok(s) => {
                 let state_clone = state.clone();
                 let db_clone = database.clone();
+                let log_tx_clone = log_tx.clone();
 
                 thread::spawn(move || {
-                    WorkerHandler::handle_connection(s, state_clone, db_clone);
+                    WorkerHandler::handle_connection(s, state_clone, db_clone, log_tx_clone);
                 });
             }
             Err(e) => println!("Error de conexión: {}.", e),
