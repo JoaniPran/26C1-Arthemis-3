@@ -9,13 +9,15 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, Deserialize)]
+use petgraph::algo::toposort;
+use petgraph::graph::DiGraph;
+#[derive(Debug, Deserialize, Clone)]
 pub struct WorkflowYaml {
     pub name: String,
     pub tasks: Vec<TaskYaml>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct TaskYaml {
     pub name: String,
     pub command: String,
@@ -45,10 +47,12 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
                                         workflow_name, workflow_id
                                     );
                                     processed_files.insert(path_str);
-
                                     let _ = tx.send(LogEvent::StartWorkflow(workflow_name));
                                 }
-                                Err(e) => eprintln!("Watcher Error: {}", e),
+                                Err(e) => {
+                                    eprintln!("Watcher Error: {}", e);
+                                    processed_files.insert(path_str);
+                                }
                             }
                         }
                     }
@@ -61,6 +65,19 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
 fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String), Box<dyn Error>> {
     let content = fs::read_to_string(file_path)?;
     let workflow: WorkflowYaml = serde_yaml::from_str(&content)?;
+
+    let grafo = create_grafo(&workflow);
+
+    if let Err(cycle_error) = toposort(&grafo, None) {
+        // Si da Err, ciclo infinito
+        let node_index = cycle_error.node_id();
+        let node_name = grafo[node_index]; // Obtenemos el nombre de la tarea conflictiva
+
+        return Err(format!(
+        "El workflow '{}' fue rechazado: contiene dependencias circulares cerca de la tarea '{}'.", 
+        workflow.name, node_name
+    ).into());
+    }
 
     if let Ok(wf_id) = db.get_workflow_id(&workflow.name) {
         println!(
@@ -105,4 +122,33 @@ fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String), Box<d
 
     let name_cloned = workflow.name.clone();
     Ok((wf_id, name_cloned))
+}
+
+fn create_grafo(workflow: &WorkflowYaml) -> DiGraph<&str, ()> {
+    let mut grafo = DiGraph::<&str, ()>::new();
+    let mut nodos = std::collections::HashMap::new();
+
+    for task in &workflow.tasks {
+        let nodo = grafo.add_node(task.name.as_str());
+        nodos.insert(task.name.as_str(), nodo);
+    }
+
+    for task in &workflow.tasks {
+        if let Some(deps) = &task.depends_on {
+            for dep_name in deps {
+                if let (Some(&nodo_actual), Some(&nodo_dep)) =
+                    (nodos.get(task.name.as_str()), nodos.get(dep_name.as_str()))
+                {
+                    grafo.add_edge(nodo_dep, nodo_actual, ());
+                } else {
+                    eprintln!(
+                        "Error: La tarea '{}' depende de '{}', pero esa tarea no existe en el YAML.",
+                        task.name, dep_name
+                    );
+                }
+            }
+        }
+    }
+
+    grafo
 }
