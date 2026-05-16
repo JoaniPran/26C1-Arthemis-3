@@ -4,6 +4,12 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 
+use std::thread;
+use std::time::Duration;
+
+use crate::SharedDatabase;
+use crate::monitor;
+
 #[derive(Debug, Deserialize)]
 pub struct WorkflowYaml {
     pub name: String,
@@ -17,8 +23,7 @@ pub struct TaskYaml {
     pub depends_on: Option<Vec<String>>,
 }
 
-pub fn load_from_yaml(db: &Database, file_path: &str) -> Result<i32, Box<dyn Error>> {
-
+pub fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String), Box<dyn Error>> {
     let content = fs::read_to_string(file_path)?;
     let workflow: WorkflowYaml = serde_yaml::from_str(&content)?;
 
@@ -53,5 +58,46 @@ pub fn load_from_yaml(db: &Database, file_path: &str) -> Result<i32, Box<dyn Err
         }
     }
 
-    Ok(wf_id)
+    let name_cloned = workflow.name.clone();
+    Ok((wf_id, name_cloned))
+}
+
+pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String) {
+    thread::spawn(move || {
+        let mut processed_files = std::collections::HashSet::new();
+
+        loop {
+            thread::sleep(Duration::from_secs(5));
+
+            if let Ok(entries) = std::fs::read_dir(&folder_path) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "yaml") {
+                        let path_str = path.to_str().unwrap().to_string();
+
+                        if !processed_files.contains(&path_str) {
+                            let db = database.lock().unwrap();
+
+                            match load_from_yaml(&db, &path_str) {
+                                Ok((workflow_id, workflow_name)) => {
+                                    println!(
+                                        "Watcher: Cargado '{}' (ID: {})",
+                                        workflow_name, workflow_id
+                                    );
+                                    processed_files.insert(path_str);
+
+                                    monitor::start_workflow_log_monitor(
+                                        database.clone(),
+                                        workflow_id,
+                                        workflow_name,
+                                    );
+                                }
+                                Err(e) => eprintln!("Watcher Error: {}", e),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
