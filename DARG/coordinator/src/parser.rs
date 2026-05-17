@@ -163,3 +163,60 @@ fn create_grafo(workflow: &WorkflowYaml) -> DiGraph<&str, ()> {
 
     grafo
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_task_yaml(nombre: &str, dependencias: Option<Vec<&str>>) -> TaskYaml {
+        TaskYaml {
+            name: nombre.to_string(),
+            command: "comando_falso".to_string(),
+            depends_on: dependencias.map(|vec| vec.into_iter().map(|s| s.to_string()).collect()),
+        }
+    }
+
+    #[test]
+    fn test_valid_graph_validation() {
+        let workflow = WorkflowYaml {
+            name: "Grafo Valido".to_string(),
+            tasks: vec![
+                create_task_yaml("A", None),
+                create_task_yaml("B", Some(vec!["A"])),
+                create_task_yaml("C", Some(vec!["A"])),
+                create_task_yaml("D", Some(vec!["B", "C"])),
+            ],
+        };
+
+        assert!(validate_workflow(&workflow).is_ok());
+    }
+
+    #[test]
+    fn test_circular_dependency_deadlock() {
+        let workflow = WorkflowYaml {
+            name: "Grafo Invalido".to_string(),
+            tasks: vec![
+                create_task_yaml("A", Some(vec!["B"])),
+                create_task_yaml("B", Some(vec!["C"])),
+                create_task_yaml("C", Some(vec!["A"])),
+            ],
+        };
+
+        let result = validate_workflow(&workflow);
+        assert!(result.is_err());
+
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("dependencias circulares"));
+    }
+
+    #[test]
+    fn test_phantom_dependency() {
+        let workflow = WorkflowYaml {
+            name: "Grafo Roto".to_string(),
+            tasks: vec![create_task_yaml("A", Some(vec!["TareaQueNoExiste"]))],
+        };
+
+        let result = validate_workflow(&workflow);
+        assert!(result.is_ok());
+    }
+}

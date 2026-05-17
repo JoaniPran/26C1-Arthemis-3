@@ -1,22 +1,16 @@
-mod db;
-mod handler;
-mod monitor;
-mod parser;
-mod state;
-mod supervisor;
-
 use common::Message;
-use db::{Database, TaskStatus};
-use handler::WorkerHandler;
-use parser::start_workflow_watcher;
-use state::CoordinatorState;
+use coordinator::SharedDatabase;
+use coordinator::db::{Database, TaskStatus};
+use coordinator::handler::WorkerHandler;
+use coordinator::monitor;
+use coordinator::parser::start_workflow_watcher;
+use coordinator::state::CoordinatorState;
+use coordinator::supervisor;
 use std::io::Write;
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::Duration;
-
-type SharedDatabase = Arc<Mutex<Database>>;
 
 fn main() {
     let port = std::env::args()
