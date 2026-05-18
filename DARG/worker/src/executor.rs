@@ -91,58 +91,60 @@ impl TaskExecutor {
 }
 
 #[cfg(test)]
-fn run_external_command(command_str: &str) -> i32 {
-    use std::process::Command;
-
-    println!("Ejecutando (Modo Test): {}", command_str);
-
-    let parts: Vec<&str> = command_str.split_whitespace().collect();
-    if parts.is_empty() {
-        return -1;
-    }
-
-    let process = Command::new(parts[0]).args(&parts[1..]).spawn();
-
-    match process {
-        Ok(mut child) => match child.wait() {
-            Ok(status) => {
-                let code = status.code().unwrap_or(1);
-                println!("Proceso terminado con código: {}", code);
-                code
-            }
-            Err(_) => 1,
-        },
-        Err(e) => {
-            eprintln!("Error al iniciar el comando: {}", e);
-            -1
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{BufRead, BufReader};
+    use std::net::TcpListener;
 
-    #[test]
-    fn test_execute_simple_command() {
-        #[cfg(not(target_os = "windows"))]
-        let cmd = "ls";
-        #[cfg(target_os = "windows")]
-        let cmd = "cmd /C dir";
+    fn create_dummy_connection() -> (TcpStream, TcpStream) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
 
-        let code = run_external_command(cmd);
-        assert_eq!(
-            code, 0,
-            "El comando debería haber terminado con éxito (código 0)"
-        );
+        let client = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+        let (server, _) = listener.accept().unwrap();
+
+        (client, server)
     }
 
     #[test]
-    fn test_execute_failing_command() {
-        let code = run_external_command("not-a-real-command-12345");
-        assert_ne!(
-            code, 0,
-            "Un comando inexistente no debería devolver código 0"
-        );
+    fn test_execute_success_and_logs() {
+        let (mut client, server) = create_dummy_connection();
+
+        #[cfg(not(target_os = "windows"))]
+        let cmd = "echo Hola Mundo";
+        #[cfg(target_os = "windows")]
+        let cmd = "cmd /C echo Hola Mundo";
+
+        let exit_code = TaskExecutor::execute(10, cmd, &mut client);
+
+        assert_eq!(exit_code, 0);
+
+        let mut reader = BufReader::new(server);
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+
+        assert!(line.contains("LogFragment"));
+        assert!(line.contains("10"));
+        assert!(line.contains("Hola Mundo"));
+    }
+
+    #[test]
+    fn test_execute_invalid_command() {
+        let (mut client, server) = create_dummy_connection();
+
+        let cmd = "comando_inventado_12345";
+
+        let exit_code = TaskExecutor::execute(99, cmd, &mut client);
+
+        assert_eq!(exit_code, 127);
+
+        let mut reader = BufReader::new(server);
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+
+        assert!(line.contains("LogFragment"));
+        assert!(line.contains("99"));
+        assert!(line.contains("[CRÍTICO]"));
+        assert!(line.contains("comando_inventado_12345"));
     }
 }

@@ -82,3 +82,66 @@ impl CoordinatorState {
         dead
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::TcpListener;
+
+    fn create_dummy_stream() -> TcpStream {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap()
+    }
+
+    #[test]
+    fn test_add_and_remove_worker() {
+        let state = CoordinatorState::new();
+        state.add_worker("worker-1".to_string(), create_dummy_stream());
+
+        let task_id = state.remove_worker("worker-1");
+        assert_eq!(task_id, None);
+
+        assert_eq!(state.remove_worker("worker-1"), None);
+    }
+
+    #[test]
+    fn test_assign_worker_and_free() {
+        let state = CoordinatorState::new();
+        state.add_worker("worker-1".to_string(), create_dummy_stream());
+
+        let assignment = state.assign_worker(100);
+        assert!(assignment.is_some());
+        assert_eq!(assignment.unwrap().0, "worker-1");
+
+        let next_assignment = state.assign_worker(101);
+        assert!(next_assignment.is_none());
+
+        state.set_worker_free("worker-1");
+
+        let final_assignment = state.assign_worker(101);
+        assert!(final_assignment.is_some());
+        assert_eq!(final_assignment.unwrap().0, "worker-1");
+    }
+
+    #[test]
+    fn test_dead_worker_timeout() {
+        let state = CoordinatorState::new();
+        state.add_worker("worker-1".to_string(), create_dummy_stream());
+
+        state.assign_worker(55);
+
+        {
+            let mut map = state.workers.lock().unwrap();
+            if let Some(info) = map.get_mut("worker-1") {
+                info.last_seen = Instant::now() - Duration::from_secs(20);
+            }
+        }
+
+        let dead_workers = state.remove_dead_workers(15);
+
+        assert_eq!(dead_workers.len(), 1);
+        assert_eq!(dead_workers[0].0, "worker-1");
+        assert_eq!(dead_workers[0].1, Some(55));
+    }
+}

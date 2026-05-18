@@ -32,6 +32,14 @@ impl Database {
         Ok(())
     }
 
+    pub fn get_task_status_by_id(&self, task_id: i32) -> Result<String> {
+        self.conn.query_row(
+            "SELECT status FROM tasks WHERE id = ?1",
+            params![task_id],
+            |row| row.get(0),
+        )
+    }
+
     pub fn get_ready_tasks(&self) -> Result<Vec<TaskRecord>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, name, command
@@ -87,5 +95,72 @@ impl Database {
             [],
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn setup_memory_db() -> Database {
+        Database::new(":memory:").expect("Fallo al crear la BD en memoria")
+    }
+
+    #[test]
+    fn test_ready_tasks_flow() {
+        let db = setup_memory_db();
+
+        let wf_id = db.insert_workflow("Test Pipeline").unwrap();
+
+        let t1 = db
+            .insert_task(wf_id, "Descargar", "wget localhost")
+            .unwrap();
+        let t2 = db
+            .insert_task(wf_id, "Procesar", "python script.py")
+            .unwrap();
+        let t3 = db.insert_task(wf_id, "Limpiar", "rm temp").unwrap();
+
+        db.insert_dependency(t2, t1).unwrap();
+        db.insert_dependency(t3, t2).unwrap();
+
+        let ready_tasks = db.get_ready_tasks().unwrap();
+        assert_eq!(ready_tasks.len(), 1);
+        assert_eq!(ready_tasks[0].id, t1);
+
+        db.update_task_status(t1, TaskStatus::Success).unwrap();
+
+        let ready_tasks = db.get_ready_tasks().unwrap();
+        assert_eq!(ready_tasks.len(), 1);
+        assert_eq!(ready_tasks[0].id, t2);
+
+        db.update_task_status(t2, TaskStatus::Failed).unwrap();
+
+        let ready_tasks = db.get_ready_tasks().unwrap();
+        assert_eq!(ready_tasks.len(), 0);
+    }
+
+    #[test]
+    fn test_workflow_reset() {
+        let db = setup_memory_db();
+        let wf_id = db.insert_workflow("Pipeline a Reiniciar").unwrap();
+        let t1 = db.insert_task(wf_id, "Tarea 1", "echo 1").unwrap();
+
+        db.update_task_status(t1, TaskStatus::Success).unwrap();
+        db.insert_log(t1, "Log de ejecución 1").unwrap();
+
+        db.reset_workflow(wf_id).unwrap();
+
+        let ready_tasks = db.get_ready_tasks().unwrap();
+        assert_eq!(ready_tasks.len(), 1);
+
+        let log_count: i32 = db
+            .conn
+            .query_row(
+                "SELECT count(*) FROM task_logs WHERE task_id = ?1",
+                params![t1],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(log_count, 0);
     }
 }

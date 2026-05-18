@@ -1,0 +1,21 @@
+name: "Pipeline_ETL_Datos"
+tasks:
+  - name: "Descargar_Datos"
+    command: "echo 'Descargando datasets desde S3...' && sleep 3"
+    depends_on: []
+
+  - name: "Limpiar_Nulos"
+    command: "echo 'Filtrando filas con valores nulos...' && sleep 2"
+    depends_on: ["Descargar_Datos"]
+
+  - name: "Normalizar_Fechas"
+    command: "echo 'Transformando formatos de fecha...' && sleep 2"
+    depends_on: ["Descargar_Datos"]
+
+  - name: "Entrenar_Modelo"
+    command: "echo 'Corriendo script de entrenamiento en Python...' && sleep 5"
+    depends_on: ["Limpiar_Nulos", "Normalizar_Fechas"]
+
+  - name: "Subir_Metricas"
+    command: "echo 'Subiendo resultados al panel de control...' && echo 'Success'"
+    depends_on: ["Entrenar_Modelo"]

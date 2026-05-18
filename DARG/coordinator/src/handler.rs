@@ -1,24 +1,32 @@
 use crate::db::{Database, TaskStatus};
+use crate::monitor::LogEvent;
 use crate::state::CoordinatorState;
 use common::Message;
 use std::io::{BufRead, BufReader};
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc::Sender};
 
 pub struct WorkerHandler {
     stream: TcpStream,
     state: CoordinatorState,
     database: Arc<Mutex<Database>>,
     worker_id: Option<String>,
+    log_tx: Sender<LogEvent>,
 }
 
 impl WorkerHandler {
-    pub fn new(stream: TcpStream, state: CoordinatorState, database: Arc<Mutex<Database>>) -> Self {
+    pub fn new(
+        stream: TcpStream,
+        state: CoordinatorState,
+        database: Arc<Mutex<Database>>,
+        log_tx: Sender<LogEvent>,
+    ) -> Self {
         Self {
             stream,
             state,
             database,
             worker_id: None,
+            log_tx,
         }
     }
 
@@ -26,8 +34,9 @@ impl WorkerHandler {
         stream: TcpStream,
         state: CoordinatorState,
         database: Arc<Mutex<Database>>,
+        log_tx: Sender<LogEvent>,
     ) {
-        let mut handler = WorkerHandler::new(stream, state, database);
+        let mut handler = WorkerHandler::new(stream, state, database, log_tx);
         handler.run();
     }
 
@@ -114,6 +123,14 @@ impl WorkerHandler {
         let db = self.database.lock().unwrap();
         if let Err(e) = db.insert_log(task_id, &content) {
             println!("Error guardando log en BD (Tarea {}): {}", task_id, e);
+        }
+
+        if let Ok((task_name, workflow_name)) = db.get_task_info(task_id) {
+            let _ = self.log_tx.send(LogEvent::LogLine {
+                workflow_name,
+                task_name,
+                content,
+            });
         }
     }
 
