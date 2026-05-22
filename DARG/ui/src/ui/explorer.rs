@@ -1,44 +1,98 @@
 use crate::app::{AppView, CoreState, UiState};
 use eframe::egui;
 
-pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState) {
+pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreState) {
     if ui_state.current_view == AppView::Workflows {
+        let frame = egui::Frame::none()
+            .fill(egui::Color32::from_rgb(23, 23, 23))
+            .inner_margin(egui::Margin::same(0.0));
+
         egui::SidePanel::left("content_panel")
             .resizable(true)
-            .default_width(220.0)
-            .width_range(220.0..=350.0)
+            .default_width(280.0)
+            .width_range(220.0..=300.0)
+            .frame(frame)
             .show(ctx, |ui| {
-                ui.add_space(15.0);
+                egui::Frame::none().inner_margin(15.0).show(ui, |ui| {
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(ui.available_width(), 28.0),
+                        egui::Layout::left_to_right(egui::Align::Center),
+                        |ui| {
+                            let title_text = egui::RichText::new("WORKFLOWS")
+                                .size(12.0)
+                                .strong()
+                                .color(egui::Color32::from_gray(120));
+                            
+                            ui.label(title_text);
 
-                ui.horizontal(|ui| {
-                    let icon_plus = "\u{200B}\u{f067}\u{200B}";
-                    ui.heading("Workflows");
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui
-                            .button(egui::RichText::new(icon_plus).size(18.0))
-                            .clicked()
-                        {
-                            println!("Importar YAML");
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                let icon_plus = "\u{200B}\u{f067}\u{200B}";
+                                let btn_plus = egui::Button::new(egui::RichText::new(icon_plus).size(16.0))
+                                    .frame(false)
+                                    .rounding(egui::Rounding::same(6.0));
+
+                                if ui.add_sized([28.0, 28.0], btn_plus)
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
+                                    ui_state.show_import_modal = true;
+                                    ui_state.import_message.clear();
+                                    ui_state.import_is_error = false;
+                                }
+                            });
                         }
-                    });
-                });
+                    );
 
-                ui.add_space(5.0);
-                ui.separator();
-                ui.add_space(10.0);
+                    ui.add_space(5.0);
+                    let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 1.0), egui::Sense::hover());
+                    ui.painter().rect_filled(rect, 0.0, egui::Color32::from_gray(40));
+                    ui.add_space(10.0);
 
-                ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    ui.spacing_mut().item_spacing.y = 8.0;
+                    ui.spacing_mut().item_spacing.y = 2.0;
 
                     for wf in &core_state.workflows {
                         let is_selected = core_state.selected_workflow.as_ref() == Some(wf);
-                        let label_text = egui::RichText::new(format!("  {}", wf)).size(14.0);
 
-                        if ui.selectable_label(is_selected, label_text).clicked() {
+                        let height = 28.0;
+                        let (rect, response) = ui.allocate_exact_size(egui::vec2(ui.available_width(), height), egui::Sense::click());
+                        
+                        let bg_color = if is_selected { 
+                            ui.visuals().selection.bg_fill 
+                        } else if response.hovered() { 
+                            egui::Color32::from_rgb(35, 35, 35)
+                        } else { 
+                            egui::Color32::TRANSPARENT 
+                        };
+                        
+                        let icon_color = if is_selected { egui::Color32::LIGHT_BLUE } else { egui::Color32::from_gray(120) };
+                        let text_color = if is_selected { egui::Color32::WHITE } else { egui::Color32::from_gray(180) };
+
+                        if bg_color != egui::Color32::TRANSPARENT {
+                            ui.painter().rect_filled(rect, 6.0, bg_color);
+                        }
+
+                        let mut job = egui::text::LayoutJob::default();
+                        job.append("\u{200B}\u{f15b}\u{200B}", 0.0, egui::text::TextFormat {
+                            font_id: egui::FontId::proportional(14.0), color: icon_color, ..Default::default()
+                        });
+                        job.append(&format!("  {}", wf), 0.0, egui::text::TextFormat {
+                            font_id: egui::FontId::proportional(14.0), color: text_color, ..Default::default()
+                        });
+
+                        let galley = ctx.fonts(|f| f.layout_job(job));
+                        let text_pos = rect.left_center() - egui::vec2(0.0, galley.rect.height() / 2.0) + egui::vec2(10.0, 0.0);
+                        
+                        ui.painter().galley(text_pos, galley, egui::Color32::WHITE);
+
+                        if response.clicked() {
                             core_state.selected_workflow = Some(wf.clone());
                         }
+                        response.on_hover_cursor(egui::CursorIcon::PointingHand);
                     }
                 });
+
+                let rect = ui.max_rect();
+                ui.painter().vline(rect.right(), rect.y_range(), egui::Stroke::new(1.0, egui::Color32::from_rgb(40, 40, 40)));
             });
     }
 }
