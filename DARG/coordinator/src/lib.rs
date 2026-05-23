@@ -2,6 +2,7 @@ pub mod db;
 pub mod handler;
 pub mod monitor;
 pub mod parser;
+pub mod server;
 pub mod state;
 pub mod supervisor;
 

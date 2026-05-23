@@ -9,7 +9,7 @@ use std::error::Error;
 use std::fs;
 use std::sync::mpsc::Sender;
 use std::thread;
-use std::time::Duration;
+use std::time::{SystemTime, Duration};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WorkflowYaml {
@@ -24,34 +24,54 @@ pub struct TaskYaml {
     pub depends_on: Option<Vec<String>>,
 }
 
-pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx: Sender<LogEvent>) {
+pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx: Sender<LogEvent>, ui_tx: Option<Sender<String>>) {
     thread::spawn(move || {
-        let mut processed_files = std::collections::HashSet::new();
+        let mut processed_files: HashMap<String, SystemTime> = HashMap::new();
 
         loop {
-            thread::sleep(Duration::from_secs(5));
+            thread::sleep(Duration::from_secs(2));
 
             if let Ok(entries) = std::fs::read_dir(&folder_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    if path.extension().map_or(false, |ext| ext == "yaml") {
+                    if path.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
                         let path_str = path.to_str().unwrap().to_string();
 
-                        if !processed_files.contains(&path_str) {
-                            let db = database.lock().unwrap();
+                        if let Ok(metadata) = std::fs::metadata(&path) {
+                            let modified_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+                            let last_processed_time = processed_files.get(&path_str).copied().unwrap_or(SystemTime::UNIX_EPOCH);
 
-                            match load_from_yaml(&db, &path_str) {
-                                Ok((workflow_id, workflow_name)) => {
-                                    println!(
-                                        "Watcher: Cargado '{}' (ID: {})",
-                                        workflow_name, workflow_id
-                                    );
-                                    processed_files.insert(path_str);
-                                    let _ = tx.send(LogEvent::StartWorkflow(workflow_name));
-                                }
-                                Err(e) => {
-                                    eprintln!("Watcher Error: {}", e);
-                                    processed_files.insert(path_str);
+                            if modified_time > last_processed_time {
+                                let db = database.lock().unwrap();
+
+                                match load_from_yaml(&db, &path_str) {
+                                    Ok((workflow_id, workflow_name)) => {
+                                        println!("Watcher: Cargado '{}' (ID: {})", workflow_name, workflow_id);
+                                        
+                                        if let Some(ui_tx_s) = &ui_tx {
+                                            if let Some(file_name_os) = path.file_name() {
+                                                if let Some(file_name) = file_name_os.to_str() {
+                                                    let _ = ui_tx_s.send(format!("LOADED:{}", file_name));
+                                                }
+                                            }
+                                        }
+                                        
+                                        processed_files.insert(path_str.clone(), modified_time);
+                                        let _ = tx.send(LogEvent::StartWorkflow(workflow_name));
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Watcher Error al procesar {}: {}", path_str, e);
+
+                                        if let Some(ui_tx_s) = &ui_tx {
+                                            if let Some(file_name_os) = path.file_name() {
+                                                if let Some(file_name) = file_name_os.to_str() {
+                                                    let _ = ui_tx_s.send(format!("ERROR:{}:{}", file_name, e));
+                                                }
+                                            }
+                                        }
+
+                                        processed_files.insert(path_str.clone(), modified_time);
+                                    }
                                 }
                             }
                         }

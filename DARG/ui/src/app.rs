@@ -1,6 +1,9 @@
 use crate::fonts::setup_custom_fonts;
 use crate::ui;
+use crate::ui::themes::Theme;
+use crate::utils::get_existing_workflows;
 use eframe::egui;
+use std::sync::mpsc::Receiver;
 
 #[derive(PartialEq, Clone)]
 pub enum TaskStatus {
@@ -31,6 +34,8 @@ pub struct UiState {
     pub show_import_modal: bool,
     pub import_message: String,
     pub import_is_error: bool,
+    pub is_importing: bool,
+    pub expected_file: String,
 }
 
 pub struct CoreState {
@@ -42,6 +47,7 @@ pub struct CoreState {
 pub struct ArthemisApp {
     pub ui: UiState,
     pub core: CoreState,
+    pub backend_rx: Option<Receiver<String>>,
 }
 
 impl ArthemisApp {
@@ -49,11 +55,11 @@ impl ArthemisApp {
         setup_custom_fonts(&cc.egui_ctx);
 
         let mut visuals = egui::Visuals::dark();
-        visuals.panel_fill = egui::Color32::from_rgb(26, 26, 26);
-        visuals.window_fill = egui::Color32::from_rgb(30, 30, 30);
-        visuals.selection.bg_fill = egui::Color32::from_rgb(35, 75, 150);
+        visuals.panel_fill = Theme::BG_APP;
+        visuals.window_fill = Theme::BG_WINDOW;
+        visuals.selection.bg_fill = Theme::SELECTION_BG;
         visuals.widgets.noninteractive.bg_stroke = egui::Stroke::NONE;
-        
+
         cc.egui_ctx.set_visuals(visuals);
 
         Self::default()
@@ -69,13 +75,11 @@ impl Default for ArthemisApp {
                 show_import_modal: false,
                 import_message: String::new(),
                 import_is_error: false,
+                is_importing: false,
+                expected_file: String::new(),
             },
             core: CoreState {
-                workflows: vec![
-                    "Main Build".to_string(),
-                    "Pipeline_Ejemplo".to_string(),
-                    "Release Flow".to_string(),
-                ],
+                workflows: get_existing_workflows(),
                 selected_workflow: None,
                 current_tasks: vec![
                     Task {
@@ -104,12 +108,45 @@ impl Default for ArthemisApp {
                     },
                 ],
             },
+            backend_rx: None,
         }
     }
 }
 
 impl eframe::App for ArthemisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(rx) = &self.backend_rx {
+            while let Ok(msg) = rx.try_recv() {
+                if msg.starts_with("LOADED:") {
+                    let file_name = msg.replace("LOADED:", "");
+                    
+                    if self.ui.is_importing && self.ui.expected_file == file_name {
+                        self.ui.is_importing = false;
+                        self.ui.import_message = format!("Archivo '{}' guardado correctamente", file_name);
+                        self.ui.import_is_error = false;
+                        
+                        if !self.core.workflows.contains(&file_name) {
+                            self.core.workflows.push(file_name);
+                        }
+                    }
+                }
+                else if msg.starts_with("ERROR:") {
+                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
+                    
+                    if parts.len() == 3 {
+                        let file_name = parts[1];
+                        let error_reason = parts[2];
+
+                        if self.ui.is_importing && self.ui.expected_file == file_name {
+                            self.ui.is_importing = false;
+                            self.ui.import_message = format!("Rechazado: {}", error_reason); 
+                            self.ui.import_is_error = true;
+                        }
+                    }
+                }
+            }
+        }
+
         if !self.ui.is_maximized {
             self.ui.is_maximized = true;
         }
