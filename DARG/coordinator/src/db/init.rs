@@ -14,7 +14,8 @@ impl Database {
             "
             CREATE TABLE IF NOT EXISTS workflows (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE
+                file_name TEXT NOT NULL UNIQUE,
+                display_name TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS tasks (

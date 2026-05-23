@@ -1,16 +1,17 @@
 use crate::fonts::setup_custom_fonts;
 use crate::ui;
 use crate::ui::themes::Theme;
-use crate::utils::get_existing_workflows;
 use eframe::egui;
 use std::sync::mpsc::Receiver;
+use std::time::Instant;
+use coordinator::db::Database;
 
 #[derive(PartialEq, Clone)]
 pub enum TaskStatus {
     Pending,
     Running,
     Success,
-    // Failed,
+    Failed,
 }
 
 #[derive(Clone)]
@@ -39,7 +40,7 @@ pub struct UiState {
 }
 
 pub struct CoreState {
-    pub workflows: Vec<String>,
+    pub workflows: Vec<(String, String)>,
     pub selected_workflow: Option<String>,
     pub current_tasks: Vec<Task>,
 }
@@ -48,6 +49,8 @@ pub struct ArthemisApp {
     pub ui: UiState,
     pub core: CoreState,
     pub backend_rx: Option<Receiver<String>>,
+    pub db: Option<Database>,
+    pub last_db_sync: Instant,
 }
 
 impl ArthemisApp {
@@ -62,7 +65,19 @@ impl ArthemisApp {
 
         cc.egui_ctx.set_visuals(visuals);
 
-        Self::default()
+        let db_instance = Database::new("arthemis.db").ok();
+
+        let mut initial_workflows = vec![];
+        if let Some(db) = &db_instance {
+            if let Ok(wfs) = db.get_all_workflows() {
+                initial_workflows = wfs;
+            }
+        }
+
+        let mut app = Self::default();
+        app.core.workflows = initial_workflows;
+        app.db = db_instance;
+        app
     }
 }
 
@@ -79,36 +94,13 @@ impl Default for ArthemisApp {
                 expected_file: String::new(),
             },
             core: CoreState {
-                workflows: get_existing_workflows(),
+                workflows: vec![],
                 selected_workflow: None,
-                current_tasks: vec![
-                    Task {
-                        id: 1,
-                        name: "Ping_Check".to_string(),
-                        status: TaskStatus::Success,
-                        logs: vec![
-                            "PING 127.0.0.1 56(84) bytes of data.".to_string(),
-                            "64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.123 ms".to_string(),
-                        ],
-                    },
-                    Task {
-                        id: 2,
-                        name: "Compilar_Rust".to_string(),
-                        status: TaskStatus::Running,
-                        logs: vec![
-                            "cargo build --release".to_string(),
-                            "Compiling arthemis_worker v1.0.0".to_string(),
-                        ],
-                    },
-                    Task {
-                        id: 3,
-                        name: "Deploy_Server".to_string(),
-                        status: TaskStatus::Pending,
-                        logs: vec![],
-                    },
-                ],
+                current_tasks: vec![],
             },
             backend_rx: None,
+            db: None,
+            last_db_sync: Instant::now(),
         }
     }
 }
@@ -118,15 +110,19 @@ impl eframe::App for ArthemisApp {
         if let Some(rx) = &self.backend_rx {
             while let Ok(msg) = rx.try_recv() {
                 if msg.starts_with("LOADED:") {
-                    let file_name = msg.replace("LOADED:", "");
-                    
-                    if self.ui.is_importing && self.ui.expected_file == file_name {
-                        self.ui.is_importing = false;
-                        self.ui.import_message = format!("Archivo '{}' guardado correctamente", file_name);
-                        self.ui.import_is_error = false;
+                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
+                    if parts.len() == 3 {
+                        let file_name = parts[1].to_string();
+                        let display_name = parts[2].to_string();
                         
-                        if !self.core.workflows.contains(&file_name) {
-                            self.core.workflows.push(file_name);
+                        if self.ui.is_importing && self.ui.expected_file == file_name {
+                            self.ui.is_importing = false;
+                            self.ui.import_message = format!("Pipeline '{}' guardado", display_name);
+                            self.ui.import_is_error = false;
+                            
+                            if !self.core.workflows.iter().any(|(f, _)| f == &file_name) {
+                                self.core.workflows.push((file_name, display_name));
+                            }
                         }
                     }
                 }
@@ -142,6 +138,29 @@ impl eframe::App for ArthemisApp {
                             self.ui.import_message = format!("Rechazado: {}", error_reason); 
                             self.ui.import_is_error = true;
                         }
+                    }
+                }
+            }
+        }
+
+        if self.last_db_sync.elapsed().as_millis() > 500 {
+            self.last_db_sync = Instant::now();
+            
+            if let Some(wf) = &self.core.selected_workflow {
+                if let Some(db) = &self.db {
+                    if let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
+                        let mut ui_tasks = Vec::new();
+                        for (id, name, status_str, logs) in backend_tasks {
+                            let status = match status_str.as_str() {
+                                "RUNNING" => TaskStatus::Running,
+                                "SUCCESS" => TaskStatus::Success,
+                                "FAILED" => TaskStatus::Failed,
+                                _ => TaskStatus::Pending,
+                            };
+                            ui_tasks.push(Task { id, name, status, logs });
+                        }
+                        
+                        self.core.current_tasks = ui_tasks;
                     }
                 }
             }

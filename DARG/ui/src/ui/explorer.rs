@@ -61,8 +61,8 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
 
                     ui.spacing_mut().item_spacing.y = 2.0;
 
-                    for wf in &core_state.workflows {
-                        let is_selected = core_state.selected_workflow.as_ref() == Some(wf);
+                    for (file_name, _) in &core_state.workflows {
+                        let is_selected = core_state.selected_workflow.as_ref() == Some(file_name);
 
                         let height = 28.0;
                         let (rect, response) = ui.allocate_exact_size(
@@ -104,7 +104,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                             },
                         );
                         job.append(
-                            &format!("  {}", wf),
+                            &format!("  {}", file_name),
                             0.0,
                             egui::text::TextFormat {
                                 font_id: egui::FontId::proportional(14.0),
@@ -121,7 +121,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                         ui.painter().galley(text_pos, galley, Theme::TEXT_WHITE);
 
                         if response.clicked() {
-                            core_state.selected_workflow = Some(wf.clone());
+                            core_state.selected_workflow = Some(file_name.clone());
                         }
                         response.on_hover_cursor(egui::CursorIcon::PointingHand);
                     }

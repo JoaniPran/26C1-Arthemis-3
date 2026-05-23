@@ -10,6 +10,7 @@ use std::fs;
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::{SystemTime, Duration};
+use std::path::Path;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WorkflowYaml {
@@ -45,19 +46,15 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
                                 let db = database.lock().unwrap();
 
                                 match load_from_yaml(&db, &path_str) {
-                                    Ok((workflow_id, workflow_name)) => {
-                                        println!("Watcher: Cargado '{}' (ID: {})", workflow_name, workflow_id);
+                                    Ok((workflow_id, file_name, display_name)) => {
+                                        println!("Watcher: Cargado '{}' desde '{}' (ID: {})", display_name, file_name, workflow_id);
                                         
                                         if let Some(ui_tx_s) = &ui_tx {
-                                            if let Some(file_name_os) = path.file_name() {
-                                                if let Some(file_name) = file_name_os.to_str() {
-                                                    let _ = ui_tx_s.send(format!("LOADED:{}", file_name));
-                                                }
-                                            }
+                                            let _ = ui_tx_s.send(format!("LOADED:{}:{}", file_name, display_name));
                                         }
                                         
                                         processed_files.insert(path_str.clone(), modified_time);
-                                        let _ = tx.send(LogEvent::StartWorkflow(workflow_name));
+                                        let _ = tx.send(LogEvent::StartWorkflow(display_name));
                                     }
                                     Err(e) => {
                                         eprintln!("Watcher Error al procesar {}: {}", path_str, e);
@@ -82,19 +79,20 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
     });
 }
 
-fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String), Box<dyn Error>> {
+fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String, String), Box<dyn Error>> {
     let content = fs::read_to_string(file_path)?;
     let workflow: WorkflowYaml = serde_yaml::from_str(&content)?;
+    let file_name = Path::new(file_path).file_name().unwrap().to_str().unwrap().to_string();
 
     validate_workflow(&workflow)?;
 
-    if let Ok(wf_id) = db.get_workflow_id(&workflow.name) {
-        println!(
-            "Parser: El workflow '{}' ya existe (ID: {}). Reiniciando tareas a PENDING y limpiando historial...",
-            workflow.name, wf_id
+    if let Ok(wf_id) = db.get_workflow_id(&file_name) {
+         println!(
+            "Parser: El archivo '{}' ya existe (ID: {}). Reiniciando tareas a PENDING y limpiando historial...",
+            file_name, wf_id
         );
         db.reset_workflow(wf_id)?;
-        return Ok((wf_id, workflow.name));
+        return Ok((wf_id,file_name, workflow.name));
     }
 
     println!(
@@ -103,9 +101,9 @@ fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String), Box<d
         workflow.tasks.len()
     );
 
-    let wf_id = save_new_workflow(db, &workflow)?;
+    let wf_id = save_new_workflow(db, &file_name, &workflow)?;
 
-    Ok((wf_id, workflow.name))
+    Ok((wf_id, file_name, workflow.name))
 }
 
 fn validate_workflow(workflow: &WorkflowYaml) -> Result<(), Box<dyn Error>> {
@@ -124,8 +122,8 @@ fn validate_workflow(workflow: &WorkflowYaml) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn save_new_workflow(db: &Database, workflow: &WorkflowYaml) -> Result<i32, Box<dyn Error>> {
-    let wf_id = db.insert_workflow(&workflow.name)?;
+fn save_new_workflow(db: &Database, file_name: &str, workflow: &WorkflowYaml) -> Result<i32, Box<dyn Error>> {
+    let wf_id = db.insert_workflow(file_name, &workflow.name)?;
     let mut name_to_id: HashMap<String, i32> = HashMap::new();
 
     for task in &workflow.tasks {

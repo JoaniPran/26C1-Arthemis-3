@@ -1,27 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub fn get_existing_workflows() -> Vec<String> {
-    let mut workflows = Vec::new();
-    let dest_dir = Path::new("workflows");
-
-    let _ = fs::create_dir_all(dest_dir);
-
-    if let Ok(entries) = fs::read_dir(dest_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let ext = path.extension().unwrap_or_default().to_str().unwrap_or_default().to_lowercase();
-            
-            if ext == "yaml" || ext == "yml" {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    workflows.push(name.to_string());
-                }
-            }
-        }
-    }
-    workflows
-}
-
 pub fn copy_workflow_file(source_path: &PathBuf) -> Result<String, String> {
     let ext = source_path.extension().unwrap_or_default().to_str().unwrap_or_default().to_lowercase();
     

@@ -44,7 +44,7 @@ pub fn draw(ctx: &egui::Context, ui: &mut egui::Ui, task: &Task) {
                 TaskStatus::Pending => ("\u{f017}", Theme::STATUS_PENDING),       
                 TaskStatus::Running => ("", Theme::STATUS_RUNNING),
                 TaskStatus::Success => ("\u{f058}", Theme::STATUS_SUCCESS), 
-                // TaskStatus::Failed  => ("\u{f057}", Theme::STATUS_FAILED),
+                TaskStatus::Failed  => ("\u{f057}", Theme::STATUS_FAILED),
             };
             
             if task.status == TaskStatus::Running {

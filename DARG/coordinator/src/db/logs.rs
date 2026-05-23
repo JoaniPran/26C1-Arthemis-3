@@ -30,7 +30,7 @@ impl Database {
 
     pub fn get_task_info(&self, task_id: i32) -> Result<(String, String)> {
         self.conn.query_row(
-            "SELECT t.name, w.name 
+            "SELECT t.name, w.display_name 
              FROM tasks t 
              JOIN workflows w ON t.workflow_id = w.id 
              WHERE t.id = ?1",
