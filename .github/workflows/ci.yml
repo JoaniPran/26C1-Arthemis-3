@@ -18,7 +18,10 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
+      working-directory: DARG
     - name: Run tests
       run: cargo test --verbose
+      working-directory: DARG
     - name: Run clippy
       run: cargo clippy --all-targets --all-features
+      working-directory: DARG
