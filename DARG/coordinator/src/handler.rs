@@ -12,6 +12,7 @@ pub struct WorkerHandler {
     database: Arc<Mutex<Database>>,
     worker_id: Option<String>,
     log_tx: Sender<LogEvent>,
+    ui_tx: Option<Sender<String>>,
 }
 
 impl WorkerHandler {
@@ -20,6 +21,7 @@ impl WorkerHandler {
         state: CoordinatorState,
         database: Arc<Mutex<Database>>,
         log_tx: Sender<LogEvent>,
+        ui_tx: Option<Sender<String>>,
     ) -> Self {
         Self {
             stream,
@@ -27,6 +29,7 @@ impl WorkerHandler {
             database,
             worker_id: None,
             log_tx,
+            ui_tx,
         }
     }
 
@@ -35,8 +38,9 @@ impl WorkerHandler {
         state: CoordinatorState,
         database: Arc<Mutex<Database>>,
         log_tx: Sender<LogEvent>,
+        ui_tx: Option<Sender<String>>,
     ) {
-        let mut handler = WorkerHandler::new(stream, state, database, log_tx);
+        let mut handler = WorkerHandler::new(stream, state, database, log_tx, ui_tx);
         handler.run();
     }
 
@@ -80,7 +84,12 @@ impl WorkerHandler {
                 id, task_id
             );
             let db = self.database.lock().unwrap();
+            // let _ = db.clear_task_logs(task_id);
             let _ = db.update_task_status(task_id, TaskStatus::Pending);
+
+            if let Some(tx) = &self.ui_tx {
+                let _ = tx.send(format!("STATUS:{}:PENDING", task_id));
+            }
         }
 
         self.state.add_worker(
@@ -99,16 +108,19 @@ impl WorkerHandler {
     }
 
     fn handle_status(&self, task_id: i32, status: String) {
-        let final_status = if status == "Success" {
-            TaskStatus::Success
+        let (final_status, status_str) = if status == "Success" {
+            (TaskStatus::Success, "SUCCESS")
         } else {
-            TaskStatus::Failed
+            (TaskStatus::Failed, "FAILED")
         };
 
         let db = self.database.lock().unwrap();
         let _ = db.update_task_status(task_id, final_status);
-
         drop(db);
+
+        if let Some(tx) = &self.ui_tx {
+            let _ = tx.send(format!("STATUS:{}:{}", task_id, status_str));
+        }
 
         if let Some(id) = &self.worker_id {
             self.state.set_worker_free(id);
@@ -129,8 +141,14 @@ impl WorkerHandler {
             let _ = self.log_tx.send(LogEvent::LogLine {
                 workflow_name,
                 task_name,
-                content,
+                content: content.clone(),
             });
+        }
+
+        drop(db);
+
+        if let Some(tx) = &self.ui_tx {
+            let _ = tx.send(format!("LOG:{}:{}", task_id, content));
         }
     }
 
@@ -143,7 +161,12 @@ impl WorkerHandler {
                 println!("Reasignando tarea huérfana (ID: {}) a PENDING...", task_id);
 
                 let db = self.database.lock().unwrap();
+                // let _ = db.clear_task_logs(task_id);
                 let _ = db.update_task_status(task_id, TaskStatus::Pending);
+
+                if let Some(tx) = &self.ui_tx {
+                    let _ = tx.send(format!("STATUS:{}:PENDING", task_id));
+                }
             }
         }
     }

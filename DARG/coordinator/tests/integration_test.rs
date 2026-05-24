@@ -45,7 +45,7 @@ fn test_worker_handler_full_integration() {
     let db_clone = db.clone();
 
     thread::spawn(move || {
-        WorkerHandler::handle_connection(server_stream, state_clone, db_clone, log_tx);
+        WorkerHandler::handle_connection(server_stream, state_clone, db_clone, log_tx, None);
     });
 
     let msg_reg = Message::RegisterWorker {

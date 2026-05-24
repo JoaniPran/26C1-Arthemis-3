@@ -38,4 +38,12 @@ impl Database {
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
     }
+
+    pub fn clear_task_logs(&self, task_id: i32) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM task_logs WHERE task_id = ?1",
+            params![task_id],
+        )?;
+        Ok(())
+    }
 }

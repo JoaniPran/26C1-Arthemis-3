@@ -31,10 +31,14 @@ pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
 
     monitor::start_global_log_monitor(log_rx);
 
-    start_workflow_watcher(database.clone(), folder, log_tx.clone(), ui_tx);
+    let ui_tx_watcher = ui_tx.clone();
+    start_workflow_watcher(database.clone(), folder, log_tx.clone(), ui_tx_watcher);
 
-    supervisor::start_watchdog(state.clone(), database.clone());
-    start_dispatcher(state.clone(), database.clone());
+    let ui_tx_supervisor = ui_tx.clone();
+    supervisor::start_watchdog(state.clone(), database.clone(), ui_tx_supervisor);
+
+    let ui_tx_dispatcher = ui_tx.clone();
+    start_dispatcher(state.clone(), database.clone(), ui_tx_dispatcher);
 
     let listener = TcpListener::bind(&addr).expect("No se pudo bindear el puerto.");
     println!("Coordinador Arthemis 3 escuchando en {}...", addr);
@@ -45,9 +49,16 @@ pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
                 let state_clone = state.clone();
                 let db_clone = database.clone();
                 let log_tx_clone = log_tx.clone();
+                let ui_tx_worker = ui_tx.clone();
 
                 thread::spawn(move || {
-                    WorkerHandler::handle_connection(s, state_clone, db_clone, log_tx_clone);
+                    WorkerHandler::handle_connection(
+                        s,
+                        state_clone,
+                        db_clone,
+                        log_tx_clone,
+                        ui_tx_worker,
+                    );
                 });
             }
             Err(e) => println!("Error de conexión: {}.", e),
@@ -55,7 +66,11 @@ pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
     }
 }
 
-fn start_dispatcher(state: CoordinatorState, database: SharedDatabase) {
+fn start_dispatcher(
+    state: CoordinatorState,
+    database: SharedDatabase,
+    ui_tx: Option<Sender<String>>,
+) {
     thread::spawn(move || {
         loop {
             thread::sleep(Duration::from_secs(2));
@@ -68,7 +83,12 @@ fn start_dispatcher(state: CoordinatorState, database: SharedDatabase) {
                         if let Some((worker_id, mut stream)) = state.assign_worker(task.id) {
                             println!("Asignando tarea '{}' al worker {}", task.name, worker_id);
 
+                            let _ = db.clear_task_logs(task.id);
                             let _ = db.update_task_status(task.id, TaskStatus::Running);
+                            
+                            if let Some(tx) = &ui_tx {
+                                let _ = tx.send(format!("STATUS:{}:RUNNING", task.id));
+                            }
 
                             let assign_msg = Message::AssignTask {
                                 task_id: task.id,
@@ -86,6 +106,10 @@ fn start_dispatcher(state: CoordinatorState, database: SharedDatabase) {
                                     );
                                     let _ = db.update_task_status(task.id, TaskStatus::Pending);
                                     state.set_worker_free(&worker_id);
+
+                                    if let Some(tx) = &ui_tx {
+                                        let _ = tx.send(format!("STATUS:{}:PENDING", task.id));
+                                    }
                                 }
                             }
                         } else {
