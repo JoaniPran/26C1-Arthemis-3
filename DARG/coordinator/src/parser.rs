@@ -110,12 +110,8 @@ fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String, String
     validate_workflow(&workflow)?;
 
     if let Ok(wf_id) = db.get_workflow_id(&file_name) {
-        println!(
-            "Parser: El archivo '{}' ya existe (ID: {}). Reiniciando tareas a PENDING y limpiando historial...",
-            file_name, wf_id
-        );
-        db.reset_workflow(wf_id)?;
-        return Ok((wf_id, file_name, workflow.name));
+        println!("Parser: Actualizando archivo modificado '{}'...", file_name);
+        db.delete_workflows(wf_id)?;
     }
 
     println!(
