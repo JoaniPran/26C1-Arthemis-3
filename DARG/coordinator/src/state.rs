@@ -26,7 +26,7 @@ impl CoordinatorState {
         map.insert(
             id,
             WorkerInfo {
-                stream: stream,
+                stream,
                 last_seen: Instant::now(),
                 assigned_task_id: None,
             },
