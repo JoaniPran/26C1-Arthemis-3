@@ -9,7 +9,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-Dwarnings -Aclippy::type_complexity" 
+  RUSTFLAGS: "-Dwarnings -Aclippy::type_complexity" # Ignorar la advertencia de complejidad de tipos en el código de la base de datos
  
 
 jobs:

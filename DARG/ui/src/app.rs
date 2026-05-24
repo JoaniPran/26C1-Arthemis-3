@@ -68,11 +68,11 @@ impl ArthemisApp {
         let db_instance = Database::new("arthemis.db").ok();
 
         let mut initial_workflows = vec![];
-        if let Some(db) = &db_instance {
-            if let Ok(wfs) = db.get_all_workflows() {
+        if let Some(db) = &db_instance 
+            && let Ok(wfs) = db.get_all_workflows() {
                 initial_workflows = wfs;
             }
-        }
+        
 
         let mut app = Self::default();
         app.core.workflows = initial_workflows;
@@ -146,9 +146,9 @@ impl eframe::App for ArthemisApp {
         if self.last_db_sync.elapsed().as_millis() > 500 {
             self.last_db_sync = Instant::now();
 
-            if let Some(wf) = &self.core.selected_workflow {
-                if let Some(db) = &self.db {
-                    if let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
+            if let Some(wf) = &self.core.selected_workflow 
+                && let Some(db) = &self.db 
+                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
                         let mut ui_tasks = Vec::new();
                         for (id, name, status_str, logs) in backend_tasks {
                             let status = match status_str.as_str() {
@@ -167,8 +167,8 @@ impl eframe::App for ArthemisApp {
 
                         self.core.current_tasks = ui_tasks;
                     }
-                }
-            }
+                
+            
         }
 
         if !self.ui.is_maximized {
