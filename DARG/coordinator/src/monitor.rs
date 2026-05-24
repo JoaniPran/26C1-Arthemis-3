@@ -41,7 +41,6 @@ pub fn start_global_log_monitor(rx: Receiver<LogEvent>) {
                         let filename = format!("{}_logs.txt", workflow_name);
                         OpenOptions::new()
                             .create(true)
-                            .write(true)
                             .append(true)
                             .open(&filename)
                             .expect("No se pudo abrir el archivo de logs")
