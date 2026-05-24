@@ -151,8 +151,8 @@ impl eframe::App for ArthemisApp {
                     }
                 } else if msg.starts_with("LOG:") {
                     let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 {
-                        if let Ok(task_id) = parts[1].parse::<i32>() {
+                    if parts.len() == 3 
+                        && let Ok(task_id) = parts[1].parse::<i32>() {
                             let log_content = parts[2].to_string();
 
                             if let Some(task) =
@@ -161,11 +161,11 @@ impl eframe::App for ArthemisApp {
                                 task.logs.push(log_content);
                             }
                         }
-                    }
+                    
                 } else if msg.starts_with("STATUS:") {
                     let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 {
-                        if let Ok(task_id) = parts[1].parse::<i32>() {
+                    if parts.len() == 3 
+                        && let Ok(task_id) = parts[1].parse::<i32>() {
                             let status_str = parts[2];
 
                             let new_status = match status_str {
@@ -182,15 +182,15 @@ impl eframe::App for ArthemisApp {
                                 }
                             }
                         }
-                    }
+                    
                 }
             }
         }
 
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
-                if let Some(db) = &self.db {
-                    if let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
+                if let Some(db) = &self.db 
+                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
                         let mut ui_tasks = Vec::new();
                         for (id, name, status_str, logs) in backend_tasks {
                             let status = match status_str.as_str() {
@@ -206,7 +206,7 @@ impl eframe::App for ArthemisApp {
                         
                         self.core.loaded_workflow = Some(wf.clone()); 
                     }
-                }
+                
             } else {
                 self.core.current_tasks.clear();
                 self.core.loaded_workflow = None;
