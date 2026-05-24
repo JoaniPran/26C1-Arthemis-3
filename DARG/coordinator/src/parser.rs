@@ -40,7 +40,7 @@ pub fn start_workflow_watcher(
                 let path_str = format!("{}/{}", folder_path, file_name);
                 let path = std::path::Path::new(&path_str);
 
-                if let Ok(metadata) = std::fs::metadata(&path) {
+                if let Ok(metadata) = std::fs::metadata(path) {
                     let modified_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
                     processed_files.insert(path_str, modified_time);
                 }
