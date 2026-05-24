@@ -152,6 +152,12 @@ impl Database {
         )?;
         Ok(())
     }
+
+    pub fn delete_workflows(&self, workflow_id: i32) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM workflows WHERE id = ?1", params![workflow_id])?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

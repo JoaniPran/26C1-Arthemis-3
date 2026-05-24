@@ -124,14 +124,12 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
                         if btn_response
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
                             .clicked()
-                        
                             && let Some(path) = rfd::FileDialog::new()
                                 .add_filter("YAML", &["yaml", "yml"])
                                 .pick_file()
-                            {
-                                pending_path = Some(path);
-                            }
-                        
+                        {
+                            pending_path = Some(path);
+                        }
 
                         if ui_state.is_importing {
                             ui.add_space(20.0);
@@ -170,11 +168,11 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
                 });
 
             ctx.input(|i| {
-                if !i.raw.dropped_files.is_empty() 
-                    && let Some(path) = &i.raw.dropped_files[0].path {
-                        pending_path = Some(path.clone());
-                    }
-                
+                if !i.raw.dropped_files.is_empty()
+                    && let Some(path) = &i.raw.dropped_files[0].path
+                {
+                    pending_path = Some(path.clone());
+                }
             });
 
             if let Some(path) = pending_path {

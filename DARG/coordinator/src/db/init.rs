@@ -4,6 +4,7 @@ use rusqlite::{Connection, Result};
 impl Database {
     pub fn new(db_path: &str) -> Result<Self> {
         let conn = Connection::open(db_path)?;
+        conn.execute("PRAGMA foreign_keys = ON", [])?;
         let db = Database { conn };
         db.create_table()?;
         Ok(db)

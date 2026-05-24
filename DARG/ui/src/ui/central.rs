@@ -7,6 +7,13 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
     egui::CentralPanel::default().show(ctx, |ui| match ui_state.current_view {
         AppView::Workflows => {
             if let Some(wf) = &core_state.selected_workflow {
+                let display_name = core_state
+                    .workflows
+                    .iter()
+                    .find(|(file_name, _)| file_name == wf)
+                    .map(|(_, name)| name.as_str())
+                    .unwrap_or(wf.as_str());
+
                 egui::Frame::none()
                     .inner_margin(egui::Margin::symmetric(20.0, 15.0))
                     .show(ui, |ui| {
@@ -15,7 +22,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                             egui::Layout::left_to_right(egui::Align::Center),
                             |ui| {
                                 ui.label(
-                                    egui::RichText::new(format!("Pipeline: {}", wf))
+                                    egui::RichText::new(format!("Pipeline: {}", display_name))
                                         .size(16.0)
                                         .strong()
                                         .color(Theme::TEXT_WHITE),
@@ -88,81 +95,6 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                                 .show(ui, |ui| {
                                     for task in &core_state.current_tasks {
                                         task_row::draw(ctx, ui, task);
-                                        // let id = ui.make_persistent_id(task.id);
-                                        // let mut state = egui::collapsing_header::CollapsingState::load_with_default_open(ctx, id, task.status == TaskStatus::Running);
-                                        // let is_open = state.is_open();
-
-                                        // let row_height = 36.0;
-                                        // let (rect, response) = ui.allocate_exact_size(egui::vec2(ui.available_width(), row_height), egui::Sense::click());
-
-                                        // if response.clicked() {
-                                        //     state.toggle(ui);
-                                        // }
-
-                                        // let bg_color = if is_open {
-                                        //     Theme::ACTIVE_ROW
-                                        // } else if response.hovered() {
-                                        //     egui::Color32::from_rgb(28, 32, 38)
-                                        // } else {
-                                        //     Theme::HOVER_ROW
-                                        // };
-
-                                        // if bg_color != egui::Color32::TRANSPARENT {
-                                        //     ui.painter().rect_filled(rect, 4.0, bg_color);
-                                        // }
-
-                                        // response.on_hover_cursor(egui::CursorIcon::PointingHand);
-
-                                        // ui.allocate_ui_at_rect(rect, |ui| {
-                                        //     ui.horizontal_centered(|ui| {
-                                        //         ui.add_space(10.0);
-
-                                        //         let icon_arrow = if is_open { "\u{f078}" } else { "\u{f054}" };
-                                        //         ui.add_sized(
-                                        //             [12.0, ui.available_height()],
-                                        //             egui::Label::new(egui::RichText::new(icon_arrow).size(11.0).color(Theme::TEXT_MUTED)).selectable(false)
-                                        //         );
-
-                                        //         ui.add_space(15.0);
-
-                                        //         let (icon, color) = match task.status {
-                                        //             TaskStatus::Pending => ("\u{f017}", Theme::STATUS_PENDING),
-                                        //             TaskStatus::Running => ("", Theme::STATUS_RUNNING),
-                                        //             TaskStatus::Success => ("\u{f058}", Theme::STATUS_SUCCESS),
-                                        //             // TaskStatus::Failed  => ("\u{f057}", Theme::STATUS_FAILED),
-                                        //         };
-
-                                        //         if task.status == TaskStatus::Running {
-                                        //             ctx.request_repaint();
-                                        //             ui.add_sized(
-                                        //                 [16.0, ui.available_height()],
-                                        //                 egui::Spinner::new().size(14.0).color(color)
-                                        //             );
-                                        //         } else {
-                                        //             ui.add_sized(
-                                        //                 [16.0, ui.available_height()],
-                                        //                 egui::Label::new(egui::RichText::new(icon).size(14.0).color(color)).selectable(false)
-                                        //             );
-                                        //         }
-
-                                        //         ui.add_space(5.0);
-                                        //         ui.add(egui::Label::new(egui::RichText::new(&task.name).size(14.0).color(Theme::TEXT_LIGHT_GRAY)).selectable(false));
-                                        //     });
-                                        // });
-
-                                        // state.show_body_unindented(ui, |ui| {
-                                        //     egui::Frame::none()
-                                        //         .inner_margin(egui::Margin { left: 47.0, right: 10.0, top: 5.0, bottom: 15.0 })
-                                        //         .show(ui, |ui| {
-                                        //             if task.logs.is_empty() {
-                                        //                 ui.label(egui::RichText::new("No hay logs disponibles.").color(Theme::TEXT_DARK_GRAY).monospace().size(12.0));
-                                        //             } else {
-                                        //                 for log in &task.logs {
-                                        //                     ui.label(egui::RichText::new(log).color(Theme::TEXT_MUTED).monospace().size(12.0));
-                                        //                 }
-                                        //             }
-                                        //         });
-                                        // });
                                     }
                                 });
                         });
