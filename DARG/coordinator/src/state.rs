@@ -14,6 +14,12 @@ pub struct CoordinatorState {
     workers: Arc<Mutex<HashMap<String, WorkerInfo>>>,
 }
 
+impl Default for CoordinatorState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CoordinatorState {
     pub fn new() -> Self {
         Self {
@@ -48,11 +54,11 @@ impl CoordinatorState {
     pub fn assign_worker(&self, task_id: i32) -> Option<(String, TcpStream)> {
         let mut map = self.workers.lock().unwrap();
         for (id, info) in map.iter_mut() {
-            if info.assigned_task_id.is_none() {
-                if let Ok(stream_clone) = info.stream.try_clone() {
-                    info.assigned_task_id = Some(task_id);
-                    return Some((id.clone(), stream_clone));
-                }
+            if info.assigned_task_id.is_none()
+                && let Ok(stream_clone) = info.stream.try_clone()
+            {
+                info.assigned_task_id = Some(task_id);
+                return Some((id.clone(), stream_clone));
             }
         }
         None

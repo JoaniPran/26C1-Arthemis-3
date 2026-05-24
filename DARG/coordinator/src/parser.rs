@@ -42,7 +42,7 @@ pub fn start_workflow_watcher(
                     let path = entry.path();
                     if path
                         .extension()
-                        .map_or(false, |ext| ext == "yaml" || ext == "yml")
+                        .is_some_and(|ext| ext == "yaml" || ext == "yml")
                     {
                         let path_str = path.to_str().unwrap().to_string();
 
@@ -77,13 +77,12 @@ pub fn start_workflow_watcher(
                                     Err(e) => {
                                         eprintln!("Watcher Error al procesar {}: {}", path_str, e);
 
-                                        if let Some(ui_tx_s) = &ui_tx {
-                                            if let Some(file_name_os) = path.file_name() {
-                                                if let Some(file_name) = file_name_os.to_str() {
-                                                    let _ = ui_tx_s
-                                                        .send(format!("ERROR:{}:{}", file_name, e));
-                                                }
-                                            }
+                                        if let Some(ui_tx_s) = &ui_tx
+                                            && let Some(file_name_os) = path.file_name()
+                                            && let Some(file_name) = file_name_os.to_str()
+                                        {
+                                            let _ =
+                                                ui_tx_s.send(format!("ERROR:{}:{}", file_name, e));
                                         }
 
                                         processed_files.insert(path_str.clone(), modified_time);

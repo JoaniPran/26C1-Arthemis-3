@@ -85,10 +85,8 @@ impl Database {
         let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
 
         let mut workflows = Vec::new();
-        for row in rows {
-            if let Ok(wf) = row {
-                workflows.push(wf);
-            }
+        for row in rows.flatten() {
+            workflows.push(row);
         }
         Ok(workflows)
     }
@@ -124,10 +122,8 @@ impl Database {
             let log_rows = log_stmt.query_map([id], |row| row.get::<_, String>(0))?;
 
             let mut logs = Vec::new();
-            for log_res in log_rows {
-                if let Ok(l) = log_res {
-                    logs.push(l);
-                }
+            for log_res in log_rows.flatten() {
+                logs.push(log_res);
             }
 
             tasks.push((id, name, status, logs));
