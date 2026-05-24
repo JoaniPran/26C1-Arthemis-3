@@ -85,7 +85,7 @@ fn start_dispatcher(
 
                             let _ = db.clear_task_logs(task.id);
                             let _ = db.update_task_status(task.id, TaskStatus::Running);
-                            
+
                             if let Some(tx) = &ui_tx {
                                 let _ = tx.send(format!("STATUS:{}:RUNNING", task.id));
                             }

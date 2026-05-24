@@ -1,0 +1,13 @@
+name: "Java_Maven_Pipeline"
+tasks:
+  - name: "Clonar repositorio"
+    command: "git clone https://github.com/JoaniPran/TaylorSwift.git"
+    depends_on: []
+
+  - name: "Validar y Testear"
+    command: "cd TaylorSwift && mvn clean test"
+    depends_on: ["Clonar repositorio"]
+
+  - name: "Deploy"
+    command: "echo 'Desplegando la aplicación de Taylor Swift en producción...'"
+    depends_on: ["Validar y Testear"]

@@ -8,13 +8,21 @@ pub struct TaskExecutor;
 
 impl TaskExecutor {
     pub fn execute(task_id: i32, command_str: &str, stream: &mut TcpStream) -> i32 {
-        let parts: Vec<&str> = command_str.split_whitespace().collect();
-        if parts.is_empty() {
+        if command_str.trim().is_empty() {
             return -1;
         }
 
-        let mut child = match Command::new(parts[0])
-            .args(&parts[1..])
+        let (shell_exec, shell_flag) = if cfg!(target_os = "windows") {
+            ("cmd", "/C")
+        } else {
+            ("sh", "-c")
+        };
+
+        // Ahora el ejecutable SIEMPRE es una Shell real del SO,
+        // y el comando entero del YAML pasa sin sufrir cortes por espacios
+        let mut child = match Command::new(shell_exec)
+            .arg(shell_flag)
+            .arg(command_str) // Pasamos la cadena entera: "cd repo_proyecto && mvn test"
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -22,8 +30,8 @@ impl TaskExecutor {
             Ok(child_process) => child_process,
             Err(e) => {
                 let err_msg = format!(
-                    "[CRÍTICO] Error del SO al iniciar comando '{}': {}",
-                    parts[0], e
+                    "[CRÍTICO] Error del SO al iniciar la Shell '{}': {}",
+                    shell_exec, e
                 );
                 let _ = Self::send_log_fragment(stream, task_id, &err_msg);
                 return 127;
@@ -31,18 +39,12 @@ impl TaskExecutor {
         };
 
         let stream_stdout = match stream.try_clone() {
-            Ok(s) => s,
-            Err(e) => {
-                println!("Error crítico al clonar socket para stdout: {}", e);
-                return -1;
-            }
+            /* ... */ Ok(s) => s,
+            Err(_) => return -1,
         };
         let stream_stderr = match stream.try_clone() {
-            Ok(s) => s,
-            Err(e) => {
-                println!("Error crítico al clonar socket para stderr: {}", e);
-                return -1;
-            }
+            /* ... */ Ok(s) => s,
+            Err(_) => return -1,
         };
 
         let child_stdout = child.stdout.take().expect("Stdout piped pero no capturado");
