@@ -8,10 +8,10 @@ use crate::supervisor;
 use common::Message;
 use std::io::Write;
 use std::net::TcpListener;
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::Duration;
-use std::sync::mpsc::Sender;
 
 pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
     let addr = format!("127.0.0.1:{}", port);

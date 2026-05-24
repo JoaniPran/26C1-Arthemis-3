@@ -7,10 +7,10 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::thread;
-use std::time::{SystemTime, Duration};
-use std::path::Path;
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WorkflowYaml {
@@ -25,7 +25,12 @@ pub struct TaskYaml {
     pub depends_on: Option<Vec<String>>,
 }
 
-pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx: Sender<LogEvent>, ui_tx: Option<Sender<String>>) {
+pub fn start_workflow_watcher(
+    database: SharedDatabase,
+    folder_path: String,
+    tx: Sender<LogEvent>,
+    ui_tx: Option<Sender<String>>,
+) {
     thread::spawn(move || {
         let mut processed_files: HashMap<String, SystemTime> = HashMap::new();
 
@@ -35,24 +40,37 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
             if let Ok(entries) = std::fs::read_dir(&folder_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    if path.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
+                    if path
+                        .extension()
+                        .map_or(false, |ext| ext == "yaml" || ext == "yml")
+                    {
                         let path_str = path.to_str().unwrap().to_string();
 
                         if let Ok(metadata) = std::fs::metadata(&path) {
-                            let modified_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-                            let last_processed_time = processed_files.get(&path_str).copied().unwrap_or(SystemTime::UNIX_EPOCH);
+                            let modified_time =
+                                metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+                            let last_processed_time = processed_files
+                                .get(&path_str)
+                                .copied()
+                                .unwrap_or(SystemTime::UNIX_EPOCH);
 
                             if modified_time > last_processed_time {
                                 let db = database.lock().unwrap();
 
                                 match load_from_yaml(&db, &path_str) {
                                     Ok((workflow_id, file_name, display_name)) => {
-                                        println!("Watcher: Cargado '{}' desde '{}' (ID: {})", display_name, file_name, workflow_id);
-                                        
+                                        println!(
+                                            "Watcher: Cargado '{}' desde '{}' (ID: {})",
+                                            display_name, file_name, workflow_id
+                                        );
+
                                         if let Some(ui_tx_s) = &ui_tx {
-                                            let _ = ui_tx_s.send(format!("LOADED:{}:{}", file_name, display_name));
+                                            let _ = ui_tx_s.send(format!(
+                                                "LOADED:{}:{}",
+                                                file_name, display_name
+                                            ));
                                         }
-                                        
+
                                         processed_files.insert(path_str.clone(), modified_time);
                                         let _ = tx.send(LogEvent::StartWorkflow(display_name));
                                     }
@@ -62,7 +80,8 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
                                         if let Some(ui_tx_s) = &ui_tx {
                                             if let Some(file_name_os) = path.file_name() {
                                                 if let Some(file_name) = file_name_os.to_str() {
-                                                    let _ = ui_tx_s.send(format!("ERROR:{}:{}", file_name, e));
+                                                    let _ = ui_tx_s
+                                                        .send(format!("ERROR:{}:{}", file_name, e));
                                                 }
                                             }
                                         }
@@ -82,17 +101,22 @@ pub fn start_workflow_watcher(database: SharedDatabase, folder_path: String, tx:
 fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String, String), Box<dyn Error>> {
     let content = fs::read_to_string(file_path)?;
     let workflow: WorkflowYaml = serde_yaml::from_str(&content)?;
-    let file_name = Path::new(file_path).file_name().unwrap().to_str().unwrap().to_string();
+    let file_name = Path::new(file_path)
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
 
     validate_workflow(&workflow)?;
 
     if let Ok(wf_id) = db.get_workflow_id(&file_name) {
-         println!(
+        println!(
             "Parser: El archivo '{}' ya existe (ID: {}). Reiniciando tareas a PENDING y limpiando historial...",
             file_name, wf_id
         );
         db.reset_workflow(wf_id)?;
-        return Ok((wf_id,file_name, workflow.name));
+        return Ok((wf_id, file_name, workflow.name));
     }
 
     println!(
@@ -122,7 +146,11 @@ fn validate_workflow(workflow: &WorkflowYaml) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn save_new_workflow(db: &Database, file_name: &str, workflow: &WorkflowYaml) -> Result<i32, Box<dyn Error>> {
+fn save_new_workflow(
+    db: &Database,
+    file_name: &str,
+    workflow: &WorkflowYaml,
+) -> Result<i32, Box<dyn Error>> {
     let wf_id = db.insert_workflow(file_name, &workflow.name)?;
     let mut name_to_id: HashMap<String, i32> = HashMap::new();
 

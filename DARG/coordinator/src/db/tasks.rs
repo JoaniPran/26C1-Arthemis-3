@@ -4,7 +4,7 @@ use rusqlite::{Result, params};
 impl Database {
     pub fn insert_workflow(&self, file_name: &str, display_name: &str) -> Result<i32> {
         self.conn.execute(
-            "INSERT INTO workflows (file_name, display_name) VALUES (?1, ?2)", 
+            "INSERT INTO workflows (file_name, display_name) VALUES (?1, ?2)",
             params![file_name, display_name],
         )?;
         Ok(self.conn.last_insert_rowid() as i32)
@@ -79,11 +79,11 @@ impl Database {
     }
 
     pub fn get_all_workflows(&self) -> Result<Vec<(String, String)>> {
-        let mut stmt = self.conn.prepare("SELECT file_name, display_name FROM workflows ORDER BY id ASC")?;
-        let rows = stmt.query_map([], |row| {
-            Ok((row.get(0)?, row.get(1)?))
-        })?;
-        
+        let mut stmt = self
+            .conn
+            .prepare("SELECT file_name, display_name FROM workflows ORDER BY id ASC")?;
+        let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+
         let mut workflows = Vec::new();
         for row in rows {
             if let Ok(wf) = row {
@@ -93,14 +93,19 @@ impl Database {
         Ok(workflows)
     }
 
-    pub fn get_tasks_for_ui(&self, file_name: &str) -> Result<Vec<(i32, String, String, Vec<String>)>> {
+    pub fn get_tasks_for_ui(
+        &self,
+        file_name: &str,
+    ) -> Result<Vec<(i32, String, String, Vec<String>)>> {
         let wf_id: i32 = match self.get_workflow_id(file_name) {
             Ok(id) => id,
             Err(_) => return Ok(vec![]),
         };
 
-        let mut stmt = self.conn.prepare("SELECT id, name, status FROM tasks WHERE workflow_id = ?1")?;
-        
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, name, status FROM tasks WHERE workflow_id = ?1")?;
+
         let rows = stmt.query_map([wf_id], |row| {
             let id: i32 = row.get(0)?;
             let name: String = row.get(1)?;
@@ -112,20 +117,22 @@ impl Database {
 
         for task_res in rows {
             let (id, name, status) = task_res?;
-            
-            let mut log_stmt = self.conn.prepare("SELECT log_line FROM task_logs WHERE task_id = ?1 ORDER BY id ASC")?;
+
+            let mut log_stmt = self
+                .conn
+                .prepare("SELECT log_line FROM task_logs WHERE task_id = ?1 ORDER BY id ASC")?;
             let log_rows = log_stmt.query_map([id], |row| row.get::<_, String>(0))?;
-            
+
             let mut logs = Vec::new();
             for log_res in log_rows {
                 if let Ok(l) = log_res {
                     logs.push(l);
                 }
             }
-            
+
             tasks.push((id, name, status, logs));
         }
-        
+
         Ok(tasks)
     }
 
@@ -163,7 +170,9 @@ mod test {
     fn test_ready_tasks_flow() {
         let db = setup_memory_db();
 
-        let wf_id = db.insert_workflow("test_pipeline.yaml", "Test Pipeline").unwrap();
+        let wf_id = db
+            .insert_workflow("test_pipeline.yaml", "Test Pipeline")
+            .unwrap();
 
         let t1 = db
             .insert_task(wf_id, "Descargar", "wget localhost")
@@ -195,7 +204,9 @@ mod test {
     #[test]
     fn test_workflow_reset() {
         let db = setup_memory_db();
-        let wf_id = db.insert_workflow("pipeline_reinicio.yaml", "Pipeline a Reiniciar").unwrap();
+        let wf_id = db
+            .insert_workflow("pipeline_reinicio.yaml", "Pipeline a Reiniciar")
+            .unwrap();
         let t1 = db.insert_task(wf_id, "Tarea 1", "echo 1").unwrap();
 
         db.update_task_status(t1, TaskStatus::Success).unwrap();

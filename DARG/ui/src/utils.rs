@@ -2,8 +2,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn copy_workflow_file(source_path: &PathBuf) -> Result<String, String> {
-    let ext = source_path.extension().unwrap_or_default().to_str().unwrap_or_default().to_lowercase();
-    
+    let ext = source_path
+        .extension()
+        .unwrap_or_default()
+        .to_str()
+        .unwrap_or_default()
+        .to_lowercase();
+
     if ext != "yaml" && ext != "yml" {
         return Err("Error: Formato no soportado. Solo se permiten archivos .yaml".to_string());
     }

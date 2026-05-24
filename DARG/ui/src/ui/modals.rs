@@ -58,17 +58,9 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
             let is_hovering_file = ctx.input(|i| !i.raw.hovered_files.is_empty());
 
             let (stroke_color, stroke_width, bg_color) = if is_hovering_file {
-                (
-                    Theme::DROPZONE_HOVER_STROKE,
-                    3.0,
-                    Theme::DROPZONE_HOVER_BG,
-                )
+                (Theme::DROPZONE_HOVER_STROKE, 3.0, Theme::DROPZONE_HOVER_BG)
             } else {
-                (
-                    Theme::DROPZONE_IDLE_STROKE,
-                    2.0,
-                    Theme::DROPZONE_IDLE_BG,
-                )
+                (Theme::DROPZONE_IDLE_STROKE, 2.0, Theme::DROPZONE_IDLE_BG)
             };
 
             egui::Frame::none()
@@ -123,14 +115,19 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
                             .rounding(egui::Rounding::same(6.0))
                             .fill(Theme::ACCENT_BLUE);
 
-                        let btn_response = ui.add_enabled_ui(!ui_state.is_importing, |ui| {
-                            ui.add_sized([300.0, 40.0], explorer_btn)
-                        }).inner;
-                        
-                        if btn_response.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                        let btn_response = ui
+                            .add_enabled_ui(!ui_state.is_importing, |ui| {
+                                ui.add_sized([300.0, 40.0], explorer_btn)
+                            })
+                            .inner;
+
+                        if btn_response
+                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                            .clicked()
+                        {
                             if let Some(path) = rfd::FileDialog::new()
                                 .add_filter("YAML", &["yaml", "yml"])
-                                .pick_file() 
+                                .pick_file()
                             {
                                 pending_path = Some(path);
                             }
@@ -141,24 +138,33 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
                             ui.horizontal_centered(|ui| {
                                 let text_w = 90.0;
                                 let spinner_w = 20.0;
-                                ui.add_space((ui.available_width() / 2.0) - (text_w / 2.0) - spinner_w);
+                                ui.add_space(
+                                    (ui.available_width() / 2.0) - (text_w / 2.0) - spinner_w,
+                                );
                                 ui.add(egui::Spinner::new().size(14.0).color(Theme::TEXT_MUTED));
                                 ui.add_space(1.0);
                                 ui.label(
                                     egui::RichText::new(&ui_state.import_message)
                                         .color(Theme::TEXT_LIGHT_GRAY)
-                                        .size(14.0)
+                                        .size(14.0),
                                 );
                             });
                             ctx.request_repaint();
                         } else if !ui_state.import_message.is_empty() {
                             ui.add_space(20.0);
                             let (icon_msg, color_msg) = if ui_state.import_is_error {
-                                ("\u{f057}", Theme::STATUS_FAILED) 
+                                ("\u{f057}", Theme::STATUS_FAILED)
                             } else {
-                                ("\u{f058}", Theme::TEXT_LIGHT_GRAY) 
+                                ("\u{f058}", Theme::TEXT_LIGHT_GRAY)
                             };
-                            ui.label(egui::RichText::new(format!("{}  {}", icon_msg, ui_state.import_message)).color(color_msg).size(14.0));
+                            ui.label(
+                                egui::RichText::new(format!(
+                                    "{}  {}",
+                                    icon_msg, ui_state.import_message
+                                ))
+                                .color(color_msg)
+                                .size(14.0),
+                            );
                         }
                     });
                 });

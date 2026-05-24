@@ -1,10 +1,10 @@
 use crate::fonts::setup_custom_fonts;
 use crate::ui;
 use crate::ui::themes::Theme;
+use coordinator::db::Database;
 use eframe::egui;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
-use coordinator::db::Database;
 
 #[derive(PartialEq, Clone)]
 pub enum TaskStatus {
@@ -114,28 +114,28 @@ impl eframe::App for ArthemisApp {
                     if parts.len() == 3 {
                         let file_name = parts[1].to_string();
                         let display_name = parts[2].to_string();
-                        
+
                         if self.ui.is_importing && self.ui.expected_file == file_name {
                             self.ui.is_importing = false;
-                            self.ui.import_message = format!("Pipeline '{}' guardado", display_name);
+                            self.ui.import_message =
+                                format!("Pipeline '{}' guardado", display_name);
                             self.ui.import_is_error = false;
-                            
+
                             if !self.core.workflows.iter().any(|(f, _)| f == &file_name) {
                                 self.core.workflows.push((file_name, display_name));
                             }
                         }
                     }
-                }
-                else if msg.starts_with("ERROR:") {
+                } else if msg.starts_with("ERROR:") {
                     let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    
+
                     if parts.len() == 3 {
                         let file_name = parts[1];
                         let error_reason = parts[2];
 
                         if self.ui.is_importing && self.ui.expected_file == file_name {
                             self.ui.is_importing = false;
-                            self.ui.import_message = format!("Rechazado: {}", error_reason); 
+                            self.ui.import_message = format!("Rechazado: {}", error_reason);
                             self.ui.import_is_error = true;
                         }
                     }
@@ -145,7 +145,7 @@ impl eframe::App for ArthemisApp {
 
         if self.last_db_sync.elapsed().as_millis() > 500 {
             self.last_db_sync = Instant::now();
-            
+
             if let Some(wf) = &self.core.selected_workflow {
                 if let Some(db) = &self.db {
                     if let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
@@ -157,9 +157,14 @@ impl eframe::App for ArthemisApp {
                                 "FAILED" => TaskStatus::Failed,
                                 _ => TaskStatus::Pending,
                             };
-                            ui_tasks.push(Task { id, name, status, logs });
+                            ui_tasks.push(Task {
+                                id,
+                                name,
+                                status,
+                                logs,
+                            });
                         }
-                        
+
                         self.core.current_tasks = ui_tasks;
                     }
                 }

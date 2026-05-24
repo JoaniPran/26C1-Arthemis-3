@@ -4,8 +4,8 @@ mod ui;
 mod utils;
 
 use app::ArthemisApp;
-use std::thread;
 use std::sync::mpsc;
+use std::thread;
 
 fn main() -> eframe::Result<()> {
     let (tx, rx) = mpsc::channel::<String>();
@@ -28,7 +28,7 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(|cc| {
             let mut app = ArthemisApp::new(cc);
-            app.backend_rx = Some(rx); 
+            app.backend_rx = Some(rx);
             Box::new(app)
         }),
     )

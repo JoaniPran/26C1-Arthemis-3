@@ -18,44 +18,67 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                                     egui::RichText::new(format!("Pipeline: {}", wf))
                                         .size(16.0)
                                         .strong()
-                                        .color(Theme::TEXT_WHITE)
+                                        .color(Theme::TEXT_WHITE),
                                 );
 
-                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                    let icon_stop = "\u{200B}\u{f04d}\u{200B}";
-                                    let icon_play = "\u{200B}\u{f04b}\u{200B}";
-                                    
-                                    let btn_stop = egui::Button::new(egui::RichText::new(icon_stop).size(16.0))
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        let icon_stop = "\u{200B}\u{f04d}\u{200B}";
+                                        let icon_play = "\u{200B}\u{f04b}\u{200B}";
+
+                                        let btn_stop = egui::Button::new(
+                                            egui::RichText::new(icon_stop).size(16.0),
+                                        )
                                         .frame(false)
                                         .rounding(egui::Rounding::same(6.0));
 
-                                    if ui.add_sized([28.0, 28.0], btn_stop).on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
-                                        println!("Deteniendo...");
-                                    }
-                                    
-                                    ui.add_space(5.0);
-                                    
-                                    let btn_play = egui::Button::new(egui::RichText::new(icon_play).size(16.0))
+                                        if ui
+                                            .add_sized([28.0, 28.0], btn_stop)
+                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                            .clicked()
+                                        {
+                                            println!("Deteniendo...");
+                                        }
+
+                                        ui.add_space(5.0);
+
+                                        let btn_play = egui::Button::new(
+                                            egui::RichText::new(icon_play).size(16.0),
+                                        )
                                         .frame(false)
                                         .rounding(egui::Rounding::same(6.0));
 
-                                    if ui.add_sized([28.0, 28.0], btn_play).on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
-                                        println!("Ejecutando...");
-                                    }
-                                });
-                            }
+                                        if ui
+                                            .add_sized([28.0, 28.0], btn_play)
+                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                            .clicked()
+                                        {
+                                            println!("Ejecutando...");
+                                        }
+                                    },
+                                );
+                            },
                         );
                     });
 
-                let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 1.0), egui::Sense::hover());
+                let (rect, _) = ui.allocate_exact_size(
+                    egui::vec2(ui.available_width(), 1.0),
+                    egui::Sense::hover(),
+                );
                 ui.painter().rect_filled(rect, 0.0, Theme::BORDER_DARK);
 
                 egui::Frame::none().inner_margin(20.0).show(ui, |ui| {
                     egui::Frame::none()
-                        .fill(Theme::BG_CENTRAL_PANEL) 
-                        .stroke(egui::Stroke::new(0.5, Theme::BORDER_LIGHT)) 
+                        .fill(Theme::BG_CENTRAL_PANEL)
+                        .stroke(egui::Stroke::new(0.5, Theme::BORDER_LIGHT))
                         .rounding(6.0)
-                        .inner_margin(egui::Margin { left: 8.0, right: 8.0, top: 10.0, bottom: 10.0 })
+                        .inner_margin(egui::Margin {
+                            left: 8.0,
+                            right: 8.0,
+                            top: 10.0,
+                            bottom: 10.0,
+                        })
                         .show(ui, |ui| {
                             ui.set_min_height(ui.available_height());
                             ui.set_min_width(ui.available_width());
@@ -77,40 +100,40 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                                         // }
 
                                         // let bg_color = if is_open {
-                                        //     Theme::ACTIVE_ROW 
+                                        //     Theme::ACTIVE_ROW
                                         // } else if response.hovered() {
-                                        //     egui::Color32::from_rgb(28, 32, 38) 
+                                        //     egui::Color32::from_rgb(28, 32, 38)
                                         // } else {
-                                        //     Theme::HOVER_ROW 
+                                        //     Theme::HOVER_ROW
                                         // };
 
                                         // if bg_color != egui::Color32::TRANSPARENT {
                                         //     ui.painter().rect_filled(rect, 4.0, bg_color);
                                         // }
-                                        
+
                                         // response.on_hover_cursor(egui::CursorIcon::PointingHand);
 
                                         // ui.allocate_ui_at_rect(rect, |ui| {
                                         //     ui.horizontal_centered(|ui| {
-                                        //         ui.add_space(10.0); 
-                                                
+                                        //         ui.add_space(10.0);
+
                                         //         let icon_arrow = if is_open { "\u{f078}" } else { "\u{f054}" };
                                         //         ui.add_sized(
                                         //             [12.0, ui.available_height()],
                                         //             egui::Label::new(egui::RichText::new(icon_arrow).size(11.0).color(Theme::TEXT_MUTED)).selectable(false)
                                         //         );
 
-                                        //         ui.add_space(15.0); 
+                                        //         ui.add_space(15.0);
 
                                         //         let (icon, color) = match task.status {
-                                        //             TaskStatus::Pending => ("\u{f017}", Theme::STATUS_PENDING),       
+                                        //             TaskStatus::Pending => ("\u{f017}", Theme::STATUS_PENDING),
                                         //             TaskStatus::Running => ("", Theme::STATUS_RUNNING),
-                                        //             TaskStatus::Success => ("\u{f058}", Theme::STATUS_SUCCESS), 
+                                        //             TaskStatus::Success => ("\u{f058}", Theme::STATUS_SUCCESS),
                                         //             // TaskStatus::Failed  => ("\u{f057}", Theme::STATUS_FAILED),
                                         //         };
-                                                
+
                                         //         if task.status == TaskStatus::Running {
-                                        //             ctx.request_repaint(); 
+                                        //             ctx.request_repaint();
                                         //             ui.add_sized(
                                         //                 [16.0, ui.available_height()],
                                         //                 egui::Spinner::new().size(14.0).color(color)
@@ -144,10 +167,15 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                                 });
                         });
                 });
-
             } else {
                 ui.centered_and_justified(|ui| {
-                    ui.label(egui::RichText::new("Selecciona un workflow del explorador para ver sus detalles.").color(Theme::TEXT_MUTED).size(14.0));
+                    ui.label(
+                        egui::RichText::new(
+                            "Selecciona un workflow del explorador para ver sus detalles.",
+                        )
+                        .color(Theme::TEXT_MUTED)
+                        .size(14.0),
+                    );
                 });
             }
         }

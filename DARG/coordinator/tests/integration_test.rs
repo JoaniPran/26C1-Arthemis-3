@@ -17,7 +17,9 @@ fn setup_integration_env() -> (
     i32,
 ) {
     let db = Database::new(":memory:").unwrap();
-    let wf_id = db.insert_workflow("integration.yaml", "Integration_Pipeline").unwrap();
+    let wf_id = db
+        .insert_workflow("integration.yaml", "Integration_Pipeline")
+        .unwrap();
     let task_id = db
         .insert_task(wf_id, "Integration_Task", "echo test")
         .unwrap();

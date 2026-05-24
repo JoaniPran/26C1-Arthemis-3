@@ -1,4 +1,4 @@
-use crate::{app::{AppView, CoreState, UiState}};
+use crate::app::{AppView, CoreState, UiState};
 use crate::ui::themes::Theme;
 use eframe::egui;
 
@@ -55,8 +55,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                         egui::vec2(ui.available_width(), 1.0),
                         egui::Sense::hover(),
                     );
-                    ui.painter()
-                        .rect_filled(rect, 0.0, Theme::BORDER_DARK);
+                    ui.painter().rect_filled(rect, 0.0, Theme::BORDER_DARK);
                     ui.add_space(10.0);
 
                     ui.spacing_mut().item_spacing.y = 2.0;
