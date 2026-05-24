@@ -4,7 +4,6 @@ use crate::ui::themes::Theme;
 use coordinator::db::Database;
 use eframe::egui;
 use std::sync::mpsc::Receiver;
-use std::time::Instant;
 
 #[derive(PartialEq, Clone)]
 pub enum TaskStatus {
@@ -42,6 +41,7 @@ pub struct UiState {
 pub struct CoreState {
     pub workflows: Vec<(String, String)>,
     pub selected_workflow: Option<String>,
+    pub loaded_workflow: Option<String>,
     pub current_tasks: Vec<Task>,
 }
 
@@ -50,7 +50,6 @@ pub struct ArthemisApp {
     pub core: CoreState,
     pub backend_rx: Option<Receiver<String>>,
     pub db: Option<Database>,
-    pub last_db_sync: Instant,
 }
 
 impl ArthemisApp {
@@ -96,11 +95,11 @@ impl Default for ArthemisApp {
             core: CoreState {
                 workflows: vec![],
                 selected_workflow: None,
+                loaded_workflow: None,
                 current_tasks: vec![],
             },
             backend_rx: None,
             db: None,
-            last_db_sync: Instant::now(),
         }
     }
 }
@@ -118,19 +117,23 @@ impl eframe::App for ArthemisApp {
                         if self.ui.is_importing && self.ui.expected_file == file_name {
                             self.ui.is_importing = false;
                             self.ui.import_message =
-                                format!("Pipeline '{}' guardado", display_name);
+                                format!("Pipeline '{}' guardado", file_name);
                             self.ui.import_is_error = false;
+                        }
 
-                            if let Some(existing) = self
+                        if let Some(existing) = self
                                 .core
                                 .workflows
                                 .iter_mut()
                                 .find(|(f, _)| f == &file_name)
-                            {
-                                existing.1 = display_name;
-                            } else {
-                                self.core.workflows.push((file_name, display_name));
-                            }
+                        {
+                            existing.1 = display_name;
+                        } else {
+                            self.core.workflows.push((file_name.clone(), display_name));
+                        }
+
+                        if self.core.selected_workflow.as_ref() == Some(&file_name) {
+                            self.core.loaded_workflow = None;
                         }
                     }
                 } else if msg.starts_with("ERROR:") {
@@ -146,34 +149,67 @@ impl eframe::App for ArthemisApp {
                             self.ui.import_is_error = true;
                         }
                     }
+                } else if msg.starts_with("LOG:") {
+                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
+                    if parts.len() == 3 
+                        && let Ok(task_id) = parts[1].parse::<i32>() {
+                            let log_content = parts[2].to_string();
+
+                            if let Some(task) =
+                                self.core.current_tasks.iter_mut().find(|t| t.id == task_id)
+                            {
+                                task.logs.push(log_content);
+                            }
+                        }
+                    
+                } else if msg.starts_with("STATUS:") {
+                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
+                    if parts.len() == 3 
+                        && let Ok(task_id) = parts[1].parse::<i32>() {
+                            let status_str = parts[2];
+
+                            let new_status = match status_str {
+                                "RUNNING" => TaskStatus::Running,
+                                "SUCCESS" => TaskStatus::Success,
+                                "FAILED" => TaskStatus::Failed,
+                                _ => TaskStatus::Pending,
+                            };
+
+                            if let Some(task) = self.core.current_tasks.iter_mut().find(|t| t.id == task_id) {
+                                task.status = new_status.clone();
+                                if new_status == TaskStatus::Running {
+                                    task.logs.clear();
+                                }
+                            }
+                        }
+                    
                 }
             }
         }
 
-        if self.last_db_sync.elapsed().as_millis() > 500 {
-            self.last_db_sync = Instant::now();
-
-            if let Some(wf) = &self.core.selected_workflow
-                && let Some(db) = &self.db
-                && let Ok(backend_tasks) = db.get_tasks_for_ui(wf)
-            {
-                let mut ui_tasks = Vec::new();
-                for (id, name, status_str, logs) in backend_tasks {
-                    let status = match status_str.as_str() {
-                        "RUNNING" => TaskStatus::Running,
-                        "SUCCESS" => TaskStatus::Success,
-                        "FAILED" => TaskStatus::Failed,
-                        _ => TaskStatus::Pending,
-                    };
-                    ui_tasks.push(Task {
-                        id,
-                        name,
-                        status,
-                        logs,
-                    });
-                }
-
-                self.core.current_tasks = ui_tasks;
+        if self.core.selected_workflow != self.core.loaded_workflow {
+            if let Some(wf) = &self.core.selected_workflow {
+                if let Some(db) = &self.db 
+                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
+                        let mut ui_tasks = Vec::new();
+                        for (id, name, status_str, logs) in backend_tasks {
+                            let status = match status_str.as_str() {
+                                "RUNNING" => TaskStatus::Running,
+                                "SUCCESS" => TaskStatus::Success,
+                                "FAILED" => TaskStatus::Failed,
+                                _ => TaskStatus::Pending,
+                            };
+                            ui_tasks.push(Task { id, name, status, logs });
+                        }
+                        
+                        self.core.current_tasks = ui_tasks;
+                        
+                        self.core.loaded_workflow = Some(wf.clone()); 
+                    }
+                
+            } else {
+                self.core.current_tasks.clear();
+                self.core.loaded_workflow = None;
             }
         }
 
