@@ -34,6 +34,20 @@ pub fn start_workflow_watcher(
     thread::spawn(move || {
         let mut processed_files: HashMap<String, SystemTime> = HashMap::new();
 
+        let db_lock = database.lock().unwrap();
+        if let Ok(known_workflows) = db_lock.get_all_workflows() {
+            for (file_name, _) in known_workflows {
+                let path_str = format!("{}/{}", folder_path, file_name);
+                let path = std::path::Path::new(&path_str);
+
+                if let Ok(metadata) = std::fs::metadata(&path) {
+                    let modified_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+                    processed_files.insert(path_str, modified_time);
+                }
+            }
+        }
+        drop(db_lock);
+
         loop {
             thread::sleep(Duration::from_secs(2));
 
