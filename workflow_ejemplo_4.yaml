@@ -2,19 +2,19 @@ name: "Rust_Cargo_Pipeline"
 tasks:
 
   - name: "Crear una carpeta para el proyecto"
-    command: "mkdir -p "$HOME/Proyectos-externos""
+    command: "mkdir -p $HOME/Proyectos-externos"
     depends_on: []
     
   - name: "Clonar repositorio"
-    command: "cd "$HOME/Proyectos-externos" && git clone https://github.com/JoaniPran/MiniKV-Server.git"
+    command: "cd $HOME/Proyectos-externos && git clone https://github.com/JoaniPran/MiniKV-Server.git"
     depends_on: []
 
   - name: "Formatear código"
-    command: "cd MiniKV-Server && cargo fmt"
+    command: "cd $HOME/Proyectos-externos/MiniKV-Server && cargo fmt"
     depends_on: ["Clonar repositorio"]
 
   - name: "Testear Codigo"
-    command: "cd MiniKV-Server && cargo test"
+    command: "cd $HOME/Proyectos-externos/MiniKV-Server && cargo test"
     depends_on: ["Formatear código"]
 
   - name: "Mostrar resultados"
