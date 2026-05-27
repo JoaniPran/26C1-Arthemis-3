@@ -1,4 +1,3 @@
 [workspace]
 resolver = "3"
 members = ["common", "coordinator", "ui", "worker"]
-exclude = ["MiniKV-Server"]
