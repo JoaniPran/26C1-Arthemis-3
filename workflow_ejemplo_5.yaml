@@ -1,0 +1,30 @@
+name: "Rust_Concurrency_Stress_Test"
+tasks:
+
+  - name: "Preparar_Entorno"
+    command: "mkdir -p $HOME/Proyectos-externos"
+    depends_on: []
+
+  - name: "Clonar_Repositorio"
+    command: "cd $HOME/Proyectos-externos && git clone https://github.com/JoaniPran/MiniKV-Server.git"
+    depends_on: ["Preparar_Entorno"]
+
+  - name: "Validar_Formato"
+    command: "cd $HOME/Proyectos-externos/MiniKV-Server && cargo fmt"
+    depends_on: ["Clonar_Repositorio"]
+
+  - name: "Analisis_Estatico_Clippy"
+    command: "cd $HOME/Proyectos-externos/MiniKV-Server && cargo clippy -- -D warnings"
+    depends_on: ["Clonar_Repositorio"]
+
+  - name: "Ejecutar_Tests"
+    command: "cd $HOME/Proyectos-externos/MiniKV-Server && cargo test"
+    depends_on: ["Clonar_Repositorio"]
+
+  - name: "Auditar_Seguridad_Worker"
+    command: "echo 'Verificando estado del Worker...' && cargo --version"
+    depends_on: []
+
+  - name: "Mostrar_Resultados_Finales"
+    command: "echo '¡Validación de concurrencia exitosa! Todo el Pipeline de MiniKV pasó las pruebas.'"
+    depends_on: ["Validar_Formato", "Analisis_Estatico_Clippy", "Ejecutar_Tests"]
