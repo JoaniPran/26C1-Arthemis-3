@@ -116,16 +116,15 @@ impl eframe::App for ArthemisApp {
 
                         if self.ui.is_importing && self.ui.expected_file == file_name {
                             self.ui.is_importing = false;
-                            self.ui.import_message =
-                                format!("Pipeline '{}' guardado", file_name);
+                            self.ui.import_message = format!("Pipeline '{}' guardado", file_name);
                             self.ui.import_is_error = false;
                         }
 
                         if let Some(existing) = self
-                                .core
-                                .workflows
-                                .iter_mut()
-                                .find(|(f, _)| f == &file_name)
+                            .core
+                            .workflows
+                            .iter_mut()
+                            .find(|(f, _)| f == &file_name)
                         {
                             existing.1 = display_name;
                         } else {
@@ -151,62 +150,69 @@ impl eframe::App for ArthemisApp {
                     }
                 } else if msg.starts_with("LOG:") {
                     let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 
-                        && let Ok(task_id) = parts[1].parse::<i32>() {
-                            let log_content = parts[2].to_string();
+                    if parts.len() == 3
+                        && let Ok(task_id) = parts[1].parse::<i32>()
+                    {
+                        let log_content = parts[2].to_string();
 
-                            if let Some(task) =
-                                self.core.current_tasks.iter_mut().find(|t| t.id == task_id)
-                            {
-                                task.logs.push(log_content);
-                            }
+                        if let Some(task) =
+                            self.core.current_tasks.iter_mut().find(|t| t.id == task_id)
+                        {
+                            task.logs.push(log_content);
                         }
-                    
+                    }
                 } else if msg.starts_with("STATUS:") {
                     let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 
-                        && let Ok(task_id) = parts[1].parse::<i32>() {
-                            let status_str = parts[2];
+                    if parts.len() == 3
+                        && let Ok(task_id) = parts[1].parse::<i32>()
+                    {
+                        let status_str = parts[2];
 
-                            let new_status = match status_str {
-                                "RUNNING" => TaskStatus::Running,
-                                "SUCCESS" => TaskStatus::Success,
-                                "FAILED" => TaskStatus::Failed,
-                                _ => TaskStatus::Pending,
-                            };
+                        let new_status = match status_str {
+                            "RUNNING" => TaskStatus::Running,
+                            "SUCCESS" => TaskStatus::Success,
+                            "FAILED" => TaskStatus::Failed,
+                            _ => TaskStatus::Pending,
+                        };
 
-                            if let Some(task) = self.core.current_tasks.iter_mut().find(|t| t.id == task_id) {
-                                task.status = new_status.clone();
-                                if new_status == TaskStatus::Running {
-                                    task.logs.clear();
-                                }
+                        if let Some(task) =
+                            self.core.current_tasks.iter_mut().find(|t| t.id == task_id)
+                        {
+                            task.status = new_status.clone();
+                            if new_status == TaskStatus::Running {
+                                task.logs.clear();
                             }
                         }
-                    
+                    }
                 }
             }
         }
 
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
-                if let Some(db) = &self.db 
-                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf) {
-                        let mut ui_tasks = Vec::new();
-                        for (id, name, status_str, logs) in backend_tasks {
-                            let status = match status_str.as_str() {
-                                "RUNNING" => TaskStatus::Running,
-                                "SUCCESS" => TaskStatus::Success,
-                                "FAILED" => TaskStatus::Failed,
-                                _ => TaskStatus::Pending,
-                            };
-                            ui_tasks.push(Task { id, name, status, logs });
-                        }
-                        
-                        self.core.current_tasks = ui_tasks;
-                        
-                        self.core.loaded_workflow = Some(wf.clone()); 
+                if let Some(db) = &self.db
+                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf)
+                {
+                    let mut ui_tasks = Vec::new();
+                    for (id, name, status_str, logs) in backend_tasks {
+                        let status = match status_str.as_str() {
+                            "RUNNING" => TaskStatus::Running,
+                            "SUCCESS" => TaskStatus::Success,
+                            "FAILED" => TaskStatus::Failed,
+                            _ => TaskStatus::Pending,
+                        };
+                        ui_tasks.push(Task {
+                            id,
+                            name,
+                            status,
+                            logs,
+                        });
                     }
-                
+
+                    self.core.current_tasks = ui_tasks;
+
+                    self.core.loaded_workflow = Some(wf.clone());
+                }
             } else {
                 self.core.current_tasks.clear();
                 self.core.loaded_workflow = None;

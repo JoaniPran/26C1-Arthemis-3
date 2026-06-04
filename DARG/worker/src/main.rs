@@ -12,7 +12,7 @@ fn main() {
 
     let server_addr = env::args()
         .nth(2)
-        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+        .unwrap_or_else(|| "100.103.147.37:8080".to_string());
 
     println!("Iniciando Worker: {}...", worker_id);
     println!("Intentando conectar al Coordinador en {}...", server_addr);
