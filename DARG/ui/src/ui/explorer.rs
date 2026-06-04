@@ -1,8 +1,15 @@
 use crate::app::{AppView, CoreState, UiState};
 use crate::ui::themes::Theme;
+use coordinator::db::Database;
 use eframe::egui;
+use std::fs;
 
-pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreState) {
+pub fn draw(
+    ctx: &egui::Context,
+    ui_state: &mut UiState,
+    core_state: &mut CoreState,
+    db: Option<&Database>,
+) {
     if ui_state.current_view == AppView::Workflows {
         let frame = egui::Frame::none()
             .fill(Theme::BG_SIDEBAR)
@@ -60,6 +67,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
 
                     ui.spacing_mut().item_spacing.y = 2.0;
 
+                    let mut delete_workflow: Option<String> = None;
                     for (file_name, _) in &core_state.workflows {
                         let is_selected = core_state.selected_workflow.as_ref() == Some(file_name);
 
@@ -122,7 +130,33 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                         if response.clicked() {
                             core_state.selected_workflow = Some(file_name.clone());
                         }
+
+                        response.context_menu(|ui| {
+                            if ui.button("Eliminar").clicked() {
+                                delete_workflow = Some(file_name.clone());
+                                ui.close_menu();
+                            }
+                        });
+
                         response.on_hover_cursor(egui::CursorIcon::PointingHand);
+                    }
+
+                    if let Some(file_name) = delete_workflow {
+                        let workflow_path = std::path::Path::new("workflows").join(&file_name);
+                        let _ = fs::remove_file(&workflow_path);
+
+                        if let Some(db) = db {
+                            if let Ok(workflow_id) = db.get_workflow_id(&file_name) {
+                                let _ = db.delete_workflows(workflow_id);
+                            }
+                        }
+
+                        core_state.workflows.retain(|(f, _)| f != &file_name);
+                        if core_state.selected_workflow.as_ref() == Some(&file_name) {
+                            core_state.selected_workflow = None;
+                            core_state.loaded_workflow = None;
+                            core_state.current_tasks.clear();
+                        }
                     }
                 });
 
