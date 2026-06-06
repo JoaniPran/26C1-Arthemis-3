@@ -145,11 +145,11 @@ pub fn draw(
                         let workflow_path = std::path::Path::new("workflows").join(&file_name);
                         let _ = fs::remove_file(&workflow_path);
 
-                        if let Some(db) = db 
-                            && let Ok(workflow_id) = db.get_workflow_id(&file_name) {
-                                let _ = db.delete_workflows(workflow_id);
-                            }
-                        
+                        if let Some(db) = db
+                            && let Ok(workflow_id) = db.get_workflow_id(&file_name)
+                        {
+                            let _ = db.delete_workflows(workflow_id);
+                        }
 
                         core_state.workflows.retain(|(f, _)| f != &file_name);
                         if core_state.selected_workflow.as_ref() == Some(&file_name) {

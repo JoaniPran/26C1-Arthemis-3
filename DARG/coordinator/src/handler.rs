@@ -2,8 +2,11 @@ use crate::db::{Database, TaskStatus};
 use crate::monitor::LogEvent;
 use crate::state::CoordinatorState;
 use common::Message;
+use std::fs::{self, File};
+use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::net::TcpStream;
+use std::path::Path;
 use std::sync::{Arc, Mutex, mpsc::Sender};
 
 pub struct WorkerHandler {
@@ -66,7 +69,11 @@ impl WorkerHandler {
         match serde_json::from_str::<Message>(text) {
             Ok(Message::RegisterWorker { id }) => self.handle_register(id),
             Ok(Message::Heartbeat) => self.handle_heartbeat(),
-            Ok(Message::TaskStatus { task_id, status }) => self.handle_status(task_id, status),
+            Ok(Message::TaskStatus {
+                task_id,
+                status,
+                output_artifact,
+            }) => self.handle_status(task_id, status, output_artifact),
             Ok(Message::LogFragment { task_id, content }) => self.handle_log(task_id, content),
             Ok(Message::AssignTask { .. }) => {}
             Err(e) => println!("Recibido mensaje malformado: {}. Contenido: {}", e, text),
@@ -107,8 +114,22 @@ impl WorkerHandler {
         }
     }
 
-    fn handle_status(&self, task_id: i32, status: String) {
+    fn handle_status(&self, task_id: i32, status: String, output_artifact: Option<Vec<u8>>) {
         let (final_status, status_str) = if status == "Success" {
+            // --- NUEVA LÓGICA DE ALMACENAMIENTO ---
+            if let Some(bytes) = output_artifact {
+                println!(
+                    "Recibiendo artefacto para Tarea ID {} ({} bytes)...",
+                    task_id,
+                    bytes.len()
+                );
+                if let Err(e) = WorkerHandler::save_artifact_to_disk(task_id, &bytes) {
+                    println!(
+                        "[ERROR] No se pudo guardar el artefacto de la tarea {}: {}",
+                        task_id, e
+                    );
+                }
+            }
             (TaskStatus::Success, "SUCCESS")
         } else {
             (TaskStatus::Failed, "FAILED")
@@ -169,5 +190,22 @@ impl WorkerHandler {
                 }
             }
         }
+    }
+
+    fn save_artifact_to_disk(task_id: i32, bytes: &[u8]) -> std::io::Result<String> {
+        let storage_dir = "./storage_artifacts";
+        fs::create_dir_all(storage_dir)?;
+
+        let file_name = format!("{}/task_{}.tar.gz", storage_dir, task_id);
+        let path = Path::new(&file_name);
+
+        let mut file = File::create(path)?;
+        file.write_all(bytes)?;
+
+        println!(
+            "[Almacenamiento] Guardado artefacto de la Tarea ID: {} en '{}'",
+            task_id, file_name
+        );
+        Ok(file_name)
     }
 }

@@ -158,6 +158,20 @@ impl Database {
             .execute("DELETE FROM workflows WHERE id = ?1", params![workflow_id])?;
         Ok(())
     }
+
+    pub fn get_task_dependencies(&self, task_id: i32) -> Result<Vec<i32>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT depends_on_id FROM dependencies WHERE task_id = ?1")?;
+
+        let rows = stmt.query_map([task_id], |row| row.get::<_, i32>(0))?;
+
+        let mut dependencies = Vec::new();
+        for id in rows {
+            dependencies.push(id?);
+        }
+        Ok(dependencies)
+    }
 }
 
 #[cfg(test)]

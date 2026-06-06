@@ -1,0 +1,128 @@
+=== INICIANDO LOGS EN TIEMPO REAL: Java_Maven_Parallel_Pipeline ===
+[Clonar repositorio] Clonando en 'output'...
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Scanning for projects...
+[Generar Documentacion Javadoc] [[1;34mINFO[m] Scanning for projects...
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m----------------------< [0;36morg.example:Constructora[0;1m >----------------------[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1mBuilding Constructora 1.0-SNAPSHOT[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:2.6:resources[m [1m(default-resources)[m @ [36mConstructora[0;1m ---[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] 
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m----------------------< [0;36morg.example:Constructora[0;1m >----------------------[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1mBuilding Constructora 1.0-SNAPSHOT[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Using 'UTF-8' encoding to copy filtered resources.
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] skip non existing resourceDirectory /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/resources
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] 
+[Generar Documentacion Javadoc] [[1;34mINFO[m] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.1:compile[m [1m(default-compile)[m @ [36mConstructora[0;1m ---[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.12.0:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mConstructora[0;1m >>>[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] 
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.12.0:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mConstructora[0;1m <<<[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] 
+[Generar Documentacion Javadoc] [[1;34mINFO[m] 
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.12.0:javadoc[m [1m(default-cli)[m @ [36mConstructora[0;1m ---[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Changes detected - recompiling the module!
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Compiling 9 source files to /home/joani/Descargas/26C1-Arthemis-3/DARG/output/target/classes
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:2.6:testResources[m [1m(default-testResources)[m @ [36mConstructora[0;1m ---[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Using 'UTF-8' encoding to copy filtered resources.
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] skip non existing resourceDirectory /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/test/resources
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.1:testCompile[m [1m(default-testCompile)[m @ [36mConstructora[0;1m ---[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Changes detected - recompiling the module!
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Compiling 1 source file to /home/joani/Descargas/26C1-Arthemis-3/DARG/output/target/test-classes
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m--- [0;32mmaven-surefire-plugin:2.12.4:test[m [1m(default-test)[m @ [36mConstructora[0;1m ---[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Surefire report directory: /home/joani/Descargas/26C1-Arthemis-3/DARG/output/target/surefire-reports
+[Ejecutar Tests Unitarios] 
+[Ejecutar Tests Unitarios] -------------------------------------------------------
+[Ejecutar Tests Unitarios]  T E S T S
+[Ejecutar Tests Unitarios] -------------------------------------------------------
+[Ejecutar Tests Unitarios] Running CasosDeUsoTest
+[Ejecutar Tests Unitarios] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+[Ejecutar Tests Unitarios] SLF4J: Defaulting to no-operation (NOP) logger implementation
+[Ejecutar Tests Unitarios] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+[Ejecutar Tests Unitarios] Configuring TestNG with: org.apache.maven.surefire.testng.conf.TestNG652Configurator@629f0666
+[Ejecutar Tests Unitarios] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.157 sec
+[Ejecutar Tests Unitarios] 
+[Ejecutar Tests Unitarios] Results :
+[Ejecutar Tests Unitarios] 
+[Ejecutar Tests Unitarios] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0
+[Ejecutar Tests Unitarios] 
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1;32mBUILD SUCCESS[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Total time:  0.988 s
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] Finished at: 2026-06-06T19:13:39-03:00
+[Ejecutar Tests Unitarios] [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] Javadoc Warnings
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Comprador.java:3: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class Comprador {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Comprador.java:8: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public Comprador(Tarjeta conTarjeta){
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Comprador.java:12: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public void comprarEntradas(Entrada entrada){
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Comprador.java:16: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public ArrayList<Entrada> getEntradas(){
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Entrada.java:1: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public abstract class Entrada {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Entrada.java:9: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public Entrada venderEntradas(){
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Gold.java:1: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class Gold implements Tarjeta{
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Gold.java:1: warning: use of default constructor, which does not provide a comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class Gold implements Tarjeta{
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Tarjeta.java:2: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public Entrada comprarEntrada(Entrada entrada);
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/org/example/Main.java:5: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class Main {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/org/example/Main.java:5: warning: use of default constructor, which does not provide a comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class Main {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/org/example/Main.java:6: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public static void main(String[] args) {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Monto.java:3: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class Monto {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Monto.java:33: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public boolean esMayor(Monto monto) {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/PertenenciaH.java:1: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class PertenenciaH implements Tarjeta{
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/PertenenciaH.java:1: warning: use of default constructor, which does not provide a comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class PertenenciaH implements Tarjeta{
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/Tarjeta.java:1: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public interface Tarjeta {
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/TipoA.java:1: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class TipoA extends Entrada{
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/TipoA.java:3: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public TipoA(Monto precio){
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] /home/joani/Descargas/26C1-Arthemis-3/DARG/output/src/main/java/TipoB.java:1: warning: no comment
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] public class TipoB extends Entrada{
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] ^
+[Generar Documentacion Javadoc] [[1;33mWARNING[m] 20 warnings
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1;32mBUILD SUCCESS[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[Generar Documentacion Javadoc] [[1;34mINFO[m] Total time:  1.047 s
+[Generar Documentacion Javadoc] [[1;34mINFO[m] Finished at: 2026-06-06T19:13:39-03:00
+[Generar Documentacion Javadoc] [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[Deploy] ¡Todos los chequeos en paralelo pasaron con éxito! Desplegando aplicación...

@@ -73,7 +73,8 @@ fn start_dispatcher(
 ) {
     thread::spawn(move || {
         loop {
-            // thread::sleep(Duration::from_secs(2));
+            // Dormimos el hilo 100ms para evitar que el loop consuma el 100% de la CPU
+            thread::sleep(std::time::Duration::from_millis(100));
 
             let db = database.lock().unwrap();
 
@@ -90,10 +91,37 @@ fn start_dispatcher(
                                 let _ = tx.send(format!("STATUS:{}:RUNNING", task.id));
                             }
 
+                            // --- LÓGICA DE ARTEFACTOS POR CONVENCIÓN ---
+                            let mut input_bytes = None;
+
+                            // Buscamos si la tarea actual tiene dependencias (padres) en la DB
+                            if let Ok(dependencies_ids) = db.get_task_dependencies(task.id) {
+                                for padre_id in dependencies_ids {
+                                    let ruta_archivo =
+                                        format!("./storage_artifacts/task_{}.tar.gz", padre_id);
+
+                                    // Si el archivo del padre existe, significa que el worker previo generó un output
+                                    if std::path::Path::new(&ruta_archivo).exists() {
+                                        println!(
+                                            "[Dispatcher] Detectado artefacto del padre (ID: {}) para '{}'. Cargando...",
+                                            padre_id, task.name
+                                        );
+                                        if let Ok(bytes) = std::fs::read(&ruta_archivo) {
+                                            input_bytes = Some(bytes);
+                                            break; // Cargamos el artefacto del padre directo y salimos del for
+                                        }
+                                    }
+                                }
+                            }
+
+                            let artifact_path = Some("output".to_string());
+
                             let assign_msg = Message::AssignTask {
                                 task_id: task.id,
                                 task_name: task.name.clone(),
                                 command: task.command.clone(),
+                                input_artifact: input_bytes, // Viajan los bytes del padre (o None)
+                                artifact_path,               // Viaja siempre Some("output")
                             };
 
                             if let Ok(mut json_msg) = serde_json::to_string(&assign_msg) {
