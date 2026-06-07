@@ -7,6 +7,8 @@ use std::process::{Command, Stdio};
 use std::thread;
 use tar::Builder;
 
+use crate::client;
+
 pub struct TaskExecutor;
 
 impl TaskExecutor {
@@ -91,26 +93,18 @@ impl TaskExecutor {
         stdout_handle.join().ok();
         stderr_handle.join().ok();
 
-        // Obtenemos el código de salida del proceso del SO
         let exit_code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
 
-        // --- NUEVA LÓGICA DE ARTEFACTOS ---
         let mut artifact_bytes = None;
 
-        // Si la tarea terminó con éxito (código 0) y el usuario pidió salvar un artefacto
         if exit_code == 0 {
-            if let Some(path) = artifact_path {
-                println!("Buscando artefacto en la ruta: '{}'...", path);
-                artifact_bytes = Self::compress_folder_to_memory(path);
-                if artifact_bytes.is_some() {
-                    println!("¡Artefacto '{}' comprimido con éxito!", path);
-                } else {
-                    println!(
-                        "[Alerta] Se esperaba un artefacto en '{}' pero no se encontró nada.",
-                        path
-                    );
-                }
-            }
+            let carpeta_a_salvar = client::descubrir_carpeta_del_comando(&command_str);
+
+            println!(
+                "[Worker Execute] Detectada ruta de trabajo dinámica: '{}'",
+                carpeta_a_salvar
+            );
+            artifact_bytes = Self::compress_folder_to_memory(&carpeta_a_salvar);
         }
 
         (exit_code, artifact_bytes)

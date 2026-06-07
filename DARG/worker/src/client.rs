@@ -115,6 +115,28 @@ fn send_message(stream: &mut TcpStream, msg: &Message) -> IoResult<()> {
     stream.write_all(json.as_bytes())
 }
 
+pub fn descubrir_carpeta_del_comando(comando: &str) -> String {
+    if comando.contains("git clone") {
+        if let Some(ultima_palabra) = comando.split_whitespace().last() {
+            if !ultima_palabra.contains("http") && !ultima_palabra.contains("git@") {
+                return ultima_palabra.to_string();
+            }
+        }
+    }
+
+    if let Some(pos) = comando.find("mkdir -p ") {
+        if let Some(ruta) = comando[pos + 9..].split_whitespace().next() {
+            return ruta.to_string();
+        }
+    } else if let Some(pos) = comando.find("mkdir ") {
+        if let Some(ruta) = comando[pos + 6..].split_whitespace().next() {
+            return ruta.to_string();
+        }
+    }
+
+    "output".to_string()
+}
+
 fn decompress_artifact_to_disk(bytes: &[u8]) -> IoResult<()> {
     let tar_gz_decoder = GzDecoder::new(bytes);
     let mut archive = Archive::new(tar_gz_decoder);

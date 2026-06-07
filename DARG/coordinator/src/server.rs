@@ -11,7 +11,6 @@ use std::net::TcpListener;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
-// use std::time::Duration;
 
 pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
     let addr = format!("100.103.147.37:{}", port);
@@ -73,9 +72,6 @@ fn start_dispatcher(
 ) {
     thread::spawn(move || {
         loop {
-            // Dormimos el hilo 100ms para evitar que el loop consuma el 100% de la CPU
-            thread::sleep(std::time::Duration::from_millis(100));
-
             let db = database.lock().unwrap();
 
             match db.get_ready_tasks() {
