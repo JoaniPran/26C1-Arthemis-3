@@ -8,12 +8,15 @@ use std::sync::mpsc;
 use std::thread;
 
 fn main() -> eframe::Result<()> {
+    let coordinator_config = parse_coordinator_config();
     let (tx, rx) = mpsc::channel::<String>();
 
-    thread::spawn(move || {
-        println!("Iniciando Coordinador Interno Arthemis...");
-        coordinator::server::start_server("8080", Some(tx));
-    });
+    if let Some(port) = coordinator_config {
+        thread::spawn(move || {
+            println!("Iniciando Coordinador Interno Arthemis en {}...", port);
+            coordinator::server::start_server(&port, Some(tx));
+        });
+    }
 
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
@@ -32,4 +35,30 @@ fn main() -> eframe::Result<()> {
             Box::new(app)
         }),
     )
+}
+
+fn parse_coordinator_config() -> Option<String> {
+    let mut args = std::env::args().skip(1);
+
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--no-coordinator" | "--no-server" => return None,
+            "--coordinator-port" | "--coordinator-addr" => {
+                if let Some(value) = args.next() {
+                    return Some(value);
+                }
+            }
+            _ => {
+                if let Some(value) = arg.strip_prefix("--coordinator-port=") {
+                    return Some(value.to_string());
+                }
+
+                if let Some(value) = arg.strip_prefix("--coordinator-addr=") {
+                    return Some(value.to_string());
+                }
+            }
+        }
+    }
+
+    Some(std::env::var("ARTHEMIS_COORDINATOR_ADDR").unwrap_or_else(|_| "8080".to_string()))
 }

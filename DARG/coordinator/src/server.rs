@@ -14,7 +14,13 @@ use std::thread;
 // use std::time::Duration;
 
 pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
-    let addr = format!("100.103.147.37:{}", port);
+    // Permite pasar un puerto o una direccion completa.
+    // Si se recibe solo un puerto, enlaza en todas las interfaces para pruebas locales.
+    let addr = if port.contains(':') {
+        port.to_string()
+    } else {
+        format!("0.0.0.0:{}", port)
+    };
 
     let db_instance = Database::new("arthemis.db").expect("Fallo al crear la base de datos");
     db_instance
