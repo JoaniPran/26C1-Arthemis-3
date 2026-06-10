@@ -53,10 +53,21 @@ fn process_message(text: &str, stream: &mut TcpStream) -> IoResult<()> {
             task_id,
             task_name,
             command,
+            artifacts_to_download,
+            artifact_to_upload,
+            produces_path,
         }) => {
             println!("Tarea recibida: {} -> {}", task_name, command);
 
-            let code = TaskExecutor::execute(task_id, &command, stream);
+            let code = TaskExecutor::execute(
+                task_id, 
+                &command, 
+                artifacts_to_download, 
+                artifact_to_upload, 
+                produces_path, 
+                stream
+            );
+            
             let status = if code == 0 { "Success" } else { "Failed" };
 
             let resp_msg = Message::TaskStatus {

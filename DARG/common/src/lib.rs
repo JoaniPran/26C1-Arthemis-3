@@ -17,6 +17,9 @@ pub enum Message {
         task_id: i32,
         task_name: String,
         command: String,
+        artifacts_to_download: Vec<String>,
+        artifact_to_upload: Option<String>,
+        produces_path: Option<String>,
     },
     Heartbeat,
 }
@@ -41,6 +44,9 @@ mod tests {
             task_id: 42,
             task_name: "build".to_string(),
             command: "cargo build".to_string(),
+            artifacts_to_download: vec![],
+            artifact_to_upload: None,
+            produces_path: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
         assert!(json.contains("AssignTask"));

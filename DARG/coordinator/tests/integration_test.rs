@@ -21,7 +21,7 @@ fn setup_integration_env() -> (
         .insert_workflow("integration.yaml", "Integration_Pipeline")
         .unwrap();
     let task_id = db
-        .insert_task(wf_id, "Integration_Task", "echo test")
+        .insert_task(wf_id, "Integration_Task", "echo test", None)
         .unwrap();
 
     let db_arc = Arc::new(Mutex::new(db));

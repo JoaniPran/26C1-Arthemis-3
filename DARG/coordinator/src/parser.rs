@@ -23,6 +23,8 @@ pub struct TaskYaml {
     pub name: String,
     pub command: String,
     pub depends_on: Option<Vec<String>>,
+    pub produces: Option<String>,
+    pub consumes: Option<Vec<String>>,
 }
 
 pub fn start_workflow_watcher(
@@ -164,7 +166,7 @@ fn save_new_workflow(
     let mut name_to_id: HashMap<String, i32> = HashMap::new();
 
     for task in &workflow.tasks {
-        let task_id = db.insert_task(wf_id, &task.name, &task.command)?;
+        let task_id = db.insert_task(wf_id, &task.name, &task.command, task.produces.as_deref())?;
         name_to_id.insert(task.name.clone(), task_id);
     }
 
@@ -181,6 +183,25 @@ fn save_new_workflow(
                     return Err(format!(
                         "Error de validación: La tarea '{}' depende de '{}', pero esa tarea no existe en el YAML.", 
                         task.name, dep_name
+                    ).into());
+                }
+            }
+        }
+    }
+
+    for task in &workflow.tasks {
+        if let Some(consumes_list) = &task.consumes {
+            let current_task_id = name_to_id
+                .get(&task.name)
+                .ok_or("Tarea no encontrada en mapa")?;
+
+            for consumed_name in consumes_list {
+                if let Some(consumed_id) = name_to_id.get(consumed_name) {
+                    db.insert_consumption(*current_task_id, *consumed_id)?;
+                } else {
+                    return Err(format!(
+                        "Error de validación: La tarea '{}' consume '{}', pero no existe.", 
+                        task.name, consumed_name
                     ).into());
                 }
             }
@@ -228,6 +249,8 @@ mod tests {
             name: nombre.to_string(),
             command: "comando_falso".to_string(),
             depends_on: dependencias.map(|vec| vec.into_iter().map(|s| s.to_string()).collect()),
+            produces: None,
+            consumes: None,
         }
     }
 
