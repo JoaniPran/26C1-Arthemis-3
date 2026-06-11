@@ -1,6 +1,13 @@
 FROM rust:slim
 
-RUN apt-get update && apt-get install -y git build-essential
+# Agregamos zip, unzip y curl junto con git y build-essential
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    zip \
+    unzip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src
 

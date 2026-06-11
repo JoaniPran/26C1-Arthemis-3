@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use rouille::Response;
 
 pub fn start_artifact_server(port: &str) {
-    let addr = format!("127.0.0.1:{}", port);
+    let addr = format!("100.103.147.37:{}", port);
     let artifacts_dir = "./artifacts";
 
     fs::create_dir_all(artifacts_dir).expect("Fallo al crear la carpeta de artefactos");
