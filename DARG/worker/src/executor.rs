@@ -84,8 +84,8 @@ impl TaskExecutor {
 
         let exit_code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
 
-        if exit_code == 0 {
-            if let (Some(upload_name), Some(prod_path)) = (upload, produces) {
+        if exit_code == 0 
+            && let (Some(upload_name), Some(prod_path)) = (upload, produces) {
                 let _ = Self::send_log_fragment(stream, task_id, &format!("[SISTEMA] Empaquetando directorio '{}'...", prod_path));
                 
                 let zip_cmd = format!("zip -r -q {} {}", upload_name, prod_path);
@@ -95,7 +95,7 @@ impl TaskExecutor {
 
                 let upload_cmd = format!("curl -s -X POST --data-binary @{} http://100.89.133.6:8081/upload/{}", upload_name, upload_name);
                 let _ = Command::new("sh").arg("-c").arg(&upload_cmd).current_dir(&workspace).status();
-            }
+            
         }
 
         let _ = fs::remove_dir_all(&workspace);

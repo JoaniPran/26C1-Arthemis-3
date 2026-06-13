@@ -1,0 +1,1 @@
+=== INICIANDO LOGS EN TIEMPO REAL: Pipeline_Ejemplo ===
