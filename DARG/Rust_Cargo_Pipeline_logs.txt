@@ -1,0 +1,37 @@
+=== INICIANDO LOGS EN TIEMPO REAL: Rust_Cargo_Pipeline ===
+[Clonar_Repositorio] Clonando en 'MiniKV-Server'...
+[Clonar_Repositorio] [SISTEMA] Empaquetando directorio 'MiniKV-Server'...
+[Clonar_Repositorio] [SISTEMA] Subiendo artefacto al Coordinador...
+[Testear Codigo] [SISTEMA] Descargando artefacto_tarea_5.zip...
+[Testear Codigo]    Compiling minikv-server-01 v0.1.0 (/tmp/arthemis_worker/task_6/MiniKV-Server)
+[Testear Codigo]     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+[Testear Codigo]      Running unittests src/lib.rs (target/debug/deps/minikv_server_01-0e375f3572ba9a90)
+[Testear Codigo] 
+[Testear Codigo] running 3 tests
+[Testear Codigo] test write_disk::tests::test_save_data ... ok
+[Testear Codigo] test write_disk::tests::test_save_in_the_disk_log ... ok
+[Testear Codigo] test minikv::tests::test_snapshot_creation ... ok
+[Testear Codigo] 
+[Testear Codigo] test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[Testear Codigo] 
+[Testear Codigo]      Running unittests src/bin/minikv-client.rs (target/debug/deps/minikv_client-bbb639a5983dd3bc)
+[Testear Codigo] 
+[Testear Codigo] running 0 tests
+[Testear Codigo] 
+[Testear Codigo] test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[Testear Codigo] 
+[Testear Codigo]      Running unittests src/bin/minikv-server.rs (target/debug/deps/minikv_server-fd0474d65e4cdb68)
+[Testear Codigo] 
+[Testear Codigo] running 0 tests
+[Testear Codigo] 
+[Testear Codigo] test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[Testear Codigo] 
+[Testear Codigo]    Doc-tests minikv_server_01
+[Testear Codigo] 
+[Testear Codigo] running 0 tests
+[Testear Codigo] 
+[Testear Codigo] test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+[Testear Codigo] 
+[Formatear código] [SISTEMA] Descargando artefacto_tarea_5.zip...
+[Mostrar resultados] Mostrando resultados de los tests...
+[Mostrar resultados] All tests passed!

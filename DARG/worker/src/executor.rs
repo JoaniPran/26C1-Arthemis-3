@@ -26,7 +26,7 @@ impl TaskExecutor {
         for artifact in downloads {
             let _ = Self::send_log_fragment(stream, task_id, &format!("[SISTEMA] Descargando {}...", artifact));
 
-            let curl_cmd = format!("curl -s -O http://100.89.133.6:8081/download/{}", artifact);
+            let curl_cmd = format!("curl -s -O http://100.103.147.37:8081/download/{}", artifact);
             let _ = Command::new("sh").arg("-c").arg(&curl_cmd).current_dir(&workspace).status();
 
             let unzip_cmd = format!("unzip -q -o {}", artifact);
@@ -93,7 +93,7 @@ impl TaskExecutor {
 
                 let _ = Self::send_log_fragment(stream, task_id, "[SISTEMA] Subiendo artefacto al Coordinador...");
 
-                let upload_cmd = format!("curl -s -X POST --data-binary @{} http://100.89.133.6:8081/upload/{}", upload_name, upload_name);
+                let upload_cmd = format!("curl -s -X POST --data-binary @{} http://100.103.147.37:8081/upload/{}", upload_name, upload_name);
                 let _ = Command::new("sh").arg("-c").arg(&upload_cmd).current_dir(&workspace).status();
             
         }
