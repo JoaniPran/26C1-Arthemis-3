@@ -25,6 +25,7 @@ impl Database {
                 name TEXT NOT NULL,
                 command TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'PENDING',
+                produces TEXT,
                 FOREIGN KEY(workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
             );
 
@@ -34,6 +35,14 @@ impl Database {
                 PRIMARY KEY (task_id, depends_on_id),
                 FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 FOREIGN KEY(depends_on_id) REFERENCES tasks(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS task_consumes (
+                task_id INTEGER NOT NULL,
+                consumed_task_id INTEGER NOT NULL,
+                PRIMARY KEY (task_id, consumed_task_id),
+                FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                FOREIGN KEY(consumed_task_id) REFERENCES tasks(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS task_logs (

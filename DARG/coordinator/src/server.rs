@@ -5,13 +5,14 @@ use crate::monitor;
 use crate::parser::start_workflow_watcher;
 use crate::state::CoordinatorState;
 use crate::supervisor;
+use crate::artifact_server;
 use common::Message;
 use std::io::Write;
 use std::net::TcpListener;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
-// use std::time::Duration;
+use std::time::Duration;
 
 pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
     let addr = format!("100.103.147.37:{}", port);
@@ -39,6 +40,10 @@ pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
 
     let ui_tx_dispatcher = ui_tx.clone();
     start_dispatcher(state.clone(), database.clone(), ui_tx_dispatcher);
+
+    thread::spawn(move || {
+        artifact_server::start_artifact_server("8081");
+    });
 
     let listener = TcpListener::bind(&addr).expect("No se pudo bindear el puerto.");
     println!("Coordinador Arthemis 3 escuchando en {}...", addr);
@@ -73,7 +78,7 @@ fn start_dispatcher(
 ) {
     thread::spawn(move || {
         loop {
-            // thread::sleep(Duration::from_secs(2));
+            thread::sleep(Duration::from_secs(2));
 
             let db = database.lock().unwrap();
 
@@ -90,10 +95,22 @@ fn start_dispatcher(
                                 let _ = tx.send(format!("STATUS:{}:RUNNING", task.id));
                             }
 
+                            let artifact_to_upload = if task.produces.is_some() {
+                                Some(format!("artefacto_tarea_{}.zip", task.id))
+                            } else {
+                                None
+                            };
+
+                            let artifacts_to_download = db.get_artifacts_to_download(task.id)
+                                .unwrap_or_else(|_| vec![]);
+
                             let assign_msg = Message::AssignTask {
                                 task_id: task.id,
                                 task_name: task.name.clone(),
                                 command: task.command.clone(),
+                                artifacts_to_download,
+                                artifact_to_upload,
+                                produces_path: task.produces.clone(),
                             };
 
                             if let Ok(mut json_msg) = serde_json::to_string(&assign_msg) {

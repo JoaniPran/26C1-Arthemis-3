@@ -3,13 +3,35 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::process::{Command, Stdio};
 use std::thread;
+use std::fs;
 
 pub struct TaskExecutor;
 
 impl TaskExecutor {
-    pub fn execute(task_id: i32, command_str: &str, stream: &mut TcpStream) -> i32 {
+    pub fn execute(
+        task_id: i32, 
+        command_str: &str,
+        downloads: Vec<String>,
+        upload: Option<String>,
+        produces: Option<String>,
+        stream: &mut TcpStream
+    ) -> i32 {
         if command_str.trim().is_empty() {
             return -1;
+        }
+
+        let workspace = format!("/tmp/arthemis_worker/task_{}", task_id);
+        let _ = fs::create_dir_all(&workspace);
+
+        for artifact in downloads {
+            let _ = Self::send_log_fragment(stream, task_id, &format!("[SISTEMA] Descargando {}...", artifact));
+
+            let curl_cmd = format!("curl -s -O http://100.89.133.6:8081/download/{}", artifact);
+            let _ = Command::new("sh").arg("-c").arg(&curl_cmd).current_dir(&workspace).status();
+
+            let unzip_cmd = format!("unzip -q -o {}", artifact);
+            let _ = Command::new("sh").arg("-c").arg(&unzip_cmd).current_dir(&workspace).status();
+
         }
 
         let (shell_exec, shell_flag) = if cfg!(target_os = "windows") {
@@ -18,11 +40,10 @@ impl TaskExecutor {
             ("sh", "-c")
         };
 
-        // Ahora el ejecutable SIEMPRE es una Shell real del SO,
-        // y el comando entero del YAML pasa sin sufrir cortes por espacios
         let mut child = match Command::new(shell_exec)
             .arg(shell_flag)
-            .arg(command_str) // Pasamos la cadena entera: "cd repo_proyecto && mvn test"
+            .arg(command_str)
+            .current_dir(&workspace)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -61,7 +82,25 @@ impl TaskExecutor {
         stdout_handle.join().ok();
         stderr_handle.join().ok();
 
-        child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1)
+        let exit_code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
+
+        if exit_code == 0 
+            && let (Some(upload_name), Some(prod_path)) = (upload, produces) {
+                let _ = Self::send_log_fragment(stream, task_id, &format!("[SISTEMA] Empaquetando directorio '{}'...", prod_path));
+                
+                let zip_cmd = format!("zip -r -q {} {}", upload_name, prod_path);
+                let _ = Command::new("sh").arg("-c").arg(&zip_cmd).current_dir(&workspace).status();
+
+                let _ = Self::send_log_fragment(stream, task_id, "[SISTEMA] Subiendo artefacto al Coordinador...");
+
+                let upload_cmd = format!("curl -s -X POST --data-binary @{} http://100.89.133.6:8081/upload/{}", upload_name, upload_name);
+                let _ = Command::new("sh").arg("-c").arg(&upload_cmd).current_dir(&workspace).status();
+            
+        }
+
+        let _ = fs::remove_dir_all(&workspace);
+
+        exit_code
     }
 
     fn stream_output_to_network<R: Read>(reader: R, mut net_stream: TcpStream, task_id: i32) {
@@ -117,7 +156,7 @@ mod tests {
         #[cfg(target_os = "windows")]
         let cmd = "cmd /C echo Hola Mundo";
 
-        let exit_code = TaskExecutor::execute(10, cmd, &mut client);
+        let exit_code = TaskExecutor::execute(10, cmd, vec![], None, None, &mut client);
 
         assert_eq!(exit_code, 0);
 

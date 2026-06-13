@@ -10,10 +10,10 @@ impl Database {
         Ok(self.conn.last_insert_rowid() as i32)
     }
 
-    pub fn insert_task(&self, workflow_id: i32, name: &str, command: &str) -> Result<i32> {
+    pub fn insert_task(&self, workflow_id: i32, name: &str, command: &str, produces: Option<&str>) -> Result<i32> {
         self.conn.execute(
-            "INSERT INTO tasks (workflow_id, name, command, status) VALUES (?1, ?2, ?3, 'PENDING')",
-            params![workflow_id, name, command],
+            "INSERT INTO tasks (workflow_id, name, command, status, produces) VALUES (?1, ?2, ?3, 'PENDING', ?4)",
+            params![workflow_id, name, command, produces],
         )?;
         Ok(self.conn.last_insert_rowid() as i32)
     }
@@ -22,6 +22,14 @@ impl Database {
         self.conn.execute(
             "INSERT INTO dependencies (task_id, depends_on_id) VALUES (?1, ?2)",
             params![task_id, depends_on_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn insert_consumption(&self, task_id: i32, consumed_task_id: i32) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO task_consumes (task_id, consumed_task_id) VALUES (?1, ?2)",
+            params![task_id, consumed_task_id],
         )?;
         Ok(())
     }
@@ -44,14 +52,14 @@ impl Database {
 
     pub fn get_ready_tasks(&self) -> Result<Vec<TaskRecord>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, name, command
-             FROM tasks 
-             WHERE status = 'PENDING' 
-             AND id NOT IN (
-                 SELECT d.task_id 
-                 FROM dependencies d 
-                 JOIN tasks t ON d.depends_on_id = t.id 
-                 WHERE t.status != 'SUCCESS'
+            "SELECT id, name, command, produces
+            FROM tasks 
+            WHERE status = 'PENDING' 
+            AND id NOT IN (
+                SELECT d.task_id 
+                FROM dependencies d 
+                JOIN tasks t ON d.depends_on_id = t.id 
+                WHERE t.status != 'SUCCESS'
              )",
         )?;
 
@@ -60,6 +68,7 @@ impl Database {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 command: row.get(2)?,
+                produces: row.get(3)?,
             })
         })?;
 
@@ -132,6 +141,23 @@ impl Database {
         Ok(tasks)
     }
 
+    pub fn get_artifacts_to_download(&self, task_id: i32) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT consumed_task_id FROM task_consumes WHERE task_id = ?1"
+        )?;
+
+        let rows = stmt.query_map([task_id], |row| {
+            let id: i32 = row.get(0)?;
+            Ok(format!("artefacto_tarea_{}.zip", id))
+        })?;
+
+        let mut artifacts = Vec::new();
+        for row in rows.flatten() {
+            artifacts.push(row);
+        }
+        Ok(artifacts)
+    }
+
     pub fn reset_workflow(&self, workflow_id: i32) -> Result<()> {
         self.conn.execute(
             "UPDATE tasks SET status = 'PENDING' WHERE workflow_id = ?1",
@@ -177,12 +203,12 @@ mod test {
             .unwrap();
 
         let t1 = db
-            .insert_task(wf_id, "Descargar", "wget localhost")
+            .insert_task(wf_id, "Descargar", "wget localhost", None)
             .unwrap();
         let t2 = db
-            .insert_task(wf_id, "Procesar", "python script.py")
+            .insert_task(wf_id, "Procesar", "python script.py", None)
             .unwrap();
-        let t3 = db.insert_task(wf_id, "Limpiar", "rm temp").unwrap();
+        let t3 = db.insert_task(wf_id, "Limpiar", "rm temp", None).unwrap();
 
         db.insert_dependency(t2, t1).unwrap();
         db.insert_dependency(t3, t2).unwrap();
@@ -209,7 +235,7 @@ mod test {
         let wf_id = db
             .insert_workflow("pipeline_reinicio.yaml", "Pipeline a Reiniciar")
             .unwrap();
-        let t1 = db.insert_task(wf_id, "Tarea 1", "echo 1").unwrap();
+        let t1 = db.insert_task(wf_id, "Tarea 1", "echo 1", None).unwrap();
 
         db.update_task_status(t1, TaskStatus::Success).unwrap();
         db.insert_log(t1, "Log de ejecución 1").unwrap();
