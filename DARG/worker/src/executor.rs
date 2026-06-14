@@ -23,8 +23,6 @@ impl TaskExecutor {
         let workspace = format!("/tmp/arthemis_worker/task_{}", task_id);
         let _ = fs::create_dir_all(&workspace);
 
-        let _addr = stream.local_addr();
-
         if let Ok(addr) = stream.peer_addr() {
             println!("Dirección del Cordinador: {}", addr);
         }
