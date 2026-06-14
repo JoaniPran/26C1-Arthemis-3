@@ -10,9 +10,18 @@ fn main() {
         "worker-default".to_string()
     });
 
-    let server_addr = env::args()
-        .nth(2)
-        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+    let argumento_addr = env::args().nth(2);
+
+    let server_addr = match argumento_addr {
+        Some(addr) => {
+            if addr.contains(':') {
+                addr
+            } else {
+                format!("{}:8080", addr)
+            }
+        }
+        None => "127.0.0.1:8080".to_string(),
+    };
 
     println!("Iniciando Worker: {}...", worker_id);
     println!("Intentando conectar al Coordinador en {}...", server_addr);

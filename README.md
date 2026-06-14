@@ -61,6 +61,14 @@ docker run -d --network host --name worker_uno mi-worker sh -c "./target/release
 
 Nota: la opción `--name` especifica el nombre del contenedor.
 
+El coordinador escucha en `0.0.0.0:8080`, por lo que desde Docker debes apuntar a la IP del host si `127.0.0.1` no funciona en tu entorno. Por ejemplo:
+
+```bash
+docker run -d --network host --name worker_uno mi-worker sh -c "./target/release/worker worker_docker 192.168.1.100"
+```
+
+Si estás usando `--network host` en Linux, `127.0.0.1` debería funcionar, pero en algunos entornos Docker el contenedor no puede ver al host por ese loopback. Usa la IP real de la máquina donde corre el coordinador.
+
 Para ver los logs del contenedor:
 
 ```bash
