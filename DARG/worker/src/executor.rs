@@ -23,9 +23,10 @@ impl TaskExecutor {
         let workspace = format!("/tmp/arthemis_worker/task_{}", task_id);
         let _ = fs::create_dir_all(&workspace);
 
-        if let Ok(addr) = stream.peer_addr() {
-            println!("Dirección del Cordinador: {}", addr);
-        }
+        let coordinator_ip = match stream.local_addr() {
+            Ok(addr) => addr.ip().to_string(),
+            Err(_) => "No se pudo obtener la dirección IP".to_string(),
+        };
 
         for artifact in downloads {
             let _ = Self::send_log_fragment(
@@ -34,7 +35,10 @@ impl TaskExecutor {
                 &format!("[SISTEMA] Descargando {}...", artifact),
             );
 
-            let curl_cmd = format!("curl -s -O http://addr:8081/download/{}", artifact);
+            let curl_cmd = format!(
+                "curl -s -O http://{}:8081/download/{}",
+                coordinator_ip, artifact
+            );
             let _ = Command::new("sh")
                 .arg("-c")
                 .arg(&curl_cmd)
@@ -122,8 +126,8 @@ impl TaskExecutor {
             );
 
             let upload_cmd = format!(
-                "curl -s -X POST --data-binary @{} http://addr:8081/upload/{}",
-                upload_name, upload_name
+                "curl -s -X POST --data-binary @{} http://{}:8081/upload/{}",
+                upload_name, coordinator_ip, upload_name
             );
             let _ = Command::new("sh")
                 .arg("-c")
