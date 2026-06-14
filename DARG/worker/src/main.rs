@@ -14,8 +14,8 @@ fn main() {
 
     let server_addr = match argumento_addr {
         Some(addr) => {
-        let ip_o_host = addr.split(':').next().unwrap_or(&addr);
-        format!("{}:8080", ip_o_host) // Forzamos siempre el puerto 8080
+            let ip_o_host = addr.split(':').next().unwrap_or(&addr);
+            format!("{}:8080", ip_o_host) // Forzamos siempre el puerto 8080
         }
         None => "127.0.0.1:8080".to_string(),
     };

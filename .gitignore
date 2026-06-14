@@ -20,6 +20,7 @@ Cargo.lock
 # Program logs
 logs/
 *.log
+*.txt
 
 # Base de datos local creada por Artemis
 arthemis.db
