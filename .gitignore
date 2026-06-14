@@ -15,11 +15,8 @@ Cargo.lock
 
 .idea/
 
-.arthemis.db
-
 # Program logs
-logs/
-*.log
+*.txt
 
 # Base de datos local creada por Artemis
 arthemis.db
