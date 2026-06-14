@@ -14,3 +14,15 @@ Cargo.lock
 *.pdb
 
 .idea/
+
+.arthemis.db
+
+# Program logs
+logs/
+*.log
+
+# Base de datos local creada por Artemis
+arthemis.db
+
+# Artefactos subidos/descargados por el servidor de artefactos
+artifacts/

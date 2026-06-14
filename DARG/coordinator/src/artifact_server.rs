@@ -1,8 +1,8 @@
-use std::fs::{self, File};
 use rouille::Response;
+use std::fs::{self, File};
 
 pub fn start_artifact_server(port: &str) {
-    let addr = format!("100.103.147.37:{}", port);
+    let addr = format!("0.0.0.0:{}", port);
     let artifacts_dir = "./artifacts";
 
     fs::create_dir_all(artifacts_dir).expect("Fallo al crear la carpeta de artefactos");
@@ -34,7 +34,9 @@ pub fn start_artifact_server(port: &str) {
                 }
             };
 
-            let mut body = request.data().expect("Fallo al leer el cuerpo del request HTTP");
+            let mut body = request
+                .data()
+                .expect("Fallo al leer el cuerpo del request HTTP");
             return match std::io::copy(&mut body, &mut file) {
                 Ok(_) => {
                     println!("Artefacto guardado exitosamente: {}", filename);

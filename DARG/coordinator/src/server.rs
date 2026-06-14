@@ -1,11 +1,11 @@
 use crate::SharedDatabase;
+use crate::artifact_server;
 use crate::db::{Database, TaskStatus};
 use crate::handler::WorkerHandler;
 use crate::monitor;
 use crate::parser::start_workflow_watcher;
 use crate::state::CoordinatorState;
 use crate::supervisor;
-use crate::artifact_server;
 use common::Message;
 use std::io::Write;
 use std::net::TcpListener;
@@ -15,7 +15,7 @@ use std::thread;
 use std::time::Duration;
 
 pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
-    let addr = format!("100.103.147.37:{}", port);
+    let addr = format!("0.0.0.0:{}", port);
 
     let db_instance = Database::new("arthemis.db").expect("Fallo al crear la base de datos");
     db_instance
@@ -101,7 +101,8 @@ fn start_dispatcher(
                                 None
                             };
 
-                            let artifacts_to_download = db.get_artifacts_to_download(task.id)
+                            let artifacts_to_download = db
+                                .get_artifacts_to_download(task.id)
                                 .unwrap_or_else(|_| vec![]);
 
                             let assign_msg = Message::AssignTask {

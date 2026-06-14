@@ -200,9 +200,10 @@ fn save_new_workflow(
                     db.insert_consumption(*current_task_id, *consumed_id)?;
                 } else {
                     return Err(format!(
-                        "Error de validación: La tarea '{}' consume '{}', pero no existe.", 
+                        "Error de validación: La tarea '{}' consume '{}', pero no existe.",
                         task.name, consumed_name
-                    ).into());
+                    )
+                    .into());
                 }
             }
         }

@@ -10,7 +10,13 @@ impl Database {
         Ok(self.conn.last_insert_rowid() as i32)
     }
 
-    pub fn insert_task(&self, workflow_id: i32, name: &str, command: &str, produces: Option<&str>) -> Result<i32> {
+    pub fn insert_task(
+        &self,
+        workflow_id: i32,
+        name: &str,
+        command: &str,
+        produces: Option<&str>,
+    ) -> Result<i32> {
         self.conn.execute(
             "INSERT INTO tasks (workflow_id, name, command, status, produces) VALUES (?1, ?2, ?3, 'PENDING', ?4)",
             params![workflow_id, name, command, produces],
@@ -142,9 +148,9 @@ impl Database {
     }
 
     pub fn get_artifacts_to_download(&self, task_id: i32) -> Result<Vec<String>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT consumed_task_id FROM task_consumes WHERE task_id = ?1"
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT consumed_task_id FROM task_consumes WHERE task_id = ?1")?;
 
         let rows = stmt.query_map([task_id], |row| {
             let id: i32 = row.get(0)?;
