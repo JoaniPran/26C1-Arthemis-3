@@ -23,7 +23,7 @@ impl TaskExecutor {
         let workspace = format!("/tmp/arthemis_worker/task_{}", task_id);
         let _ = fs::create_dir_all(&workspace);
 
-        let coordinator_ip = match stream.local_addr() {
+        let coordinator_ip = match stream.peer_addr() {
             Ok(addr) => addr.ip().to_string(),
             Err(_) => "No se pudo obtener la dirección IP".to_string(),
         };
