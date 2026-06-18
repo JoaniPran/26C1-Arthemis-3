@@ -39,12 +39,18 @@ pub struct UiState {
     pub expected_file: String,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum WorkflowExecutionState {
+    Idle,    // Nadie tocó nada, listo para dar Play
+    Running, // Corriendo tareas, UI completamente bloqueada en modo Pausa
+}
 pub struct CoreState {
     pub workflows: Vec<(String, String)>,
     pub selected_workflow: Option<String>,
     pub loaded_workflow: Option<String>,
     pub current_tasks: Vec<Task>,
     pub workflow_running: bool,
+    pub workflow_execution_state: WorkflowExecutionState,
 }
 
 pub struct ArthemisApp {
@@ -100,6 +106,7 @@ impl Default for ArthemisApp {
                 loaded_workflow: None,
                 current_tasks: vec![],
                 workflow_running: false,
+                workflow_execution_state: WorkflowExecutionState::Idle,
             },
             backend_rx: None,
             db: None,
@@ -187,6 +194,8 @@ impl eframe::App for ArthemisApp {
                             if new_status == TaskStatus::Running {
                                 task.logs.clear();
                                 self.core.workflow_running = true;
+                                self.core.workflow_execution_state =
+                                    WorkflowExecutionState::Running;
                             }
                         }
                     }
@@ -226,7 +235,7 @@ impl eframe::App for ArthemisApp {
             }
         }
 
-        if self.core.workflow_running {
+        if self.core.workflow_execution_state == WorkflowExecutionState::Running {
             let has_running = self
                 .core
                 .current_tasks
@@ -239,6 +248,7 @@ impl eframe::App for ArthemisApp {
                 .any(|t| t.status == TaskStatus::Pending);
             if !has_running && !has_pending {
                 self.core.workflow_running = false;
+                self.core.workflow_execution_state = WorkflowExecutionState::Idle;
             }
         }
 

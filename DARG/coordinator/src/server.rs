@@ -1,6 +1,6 @@
 use crate::SharedDatabase;
 use crate::artifact_server;
-use crate::db::{Database, TaskStatus};
+use crate::db::{Database};
 use crate::handler::WorkerHandler;
 use crate::monitor;
 use crate::parser::start_workflow_watcher;
