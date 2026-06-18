@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum TaskStatus {
+    Sleeping,
     Pending,
     Running,
     Success,
@@ -11,6 +12,7 @@ pub enum TaskStatus {
 impl fmt::Display for TaskStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            TaskStatus::Sleeping => write!(f, "SLEEPING"),
             TaskStatus::Pending => write!(f, "PENDING"),
             TaskStatus::Running => write!(f, "RUNNING"),
             TaskStatus::Success => write!(f, "SUCCESS"),

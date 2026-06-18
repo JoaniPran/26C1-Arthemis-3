@@ -7,6 +7,7 @@ use std::sync::mpsc::Receiver;
 
 #[derive(PartialEq, Clone)]
 pub enum TaskStatus {
+    Sleeping,
     Pending,
     Running,
     Success,
@@ -43,6 +44,7 @@ pub struct CoreState {
     pub selected_workflow: Option<String>,
     pub loaded_workflow: Option<String>,
     pub current_tasks: Vec<Task>,
+    pub workflow_running: bool,
 }
 
 pub struct ArthemisApp {
@@ -97,6 +99,7 @@ impl Default for ArthemisApp {
                 selected_workflow: None,
                 loaded_workflow: None,
                 current_tasks: vec![],
+                workflow_running: false,
             },
             backend_rx: None,
             db: None,
@@ -167,12 +170,14 @@ impl eframe::App for ArthemisApp {
                         && let Ok(task_id) = parts[1].parse::<i32>()
                     {
                         let status_str = parts[2];
+                        let status_normalized = status_str.to_ascii_uppercase();
 
-                        let new_status = match status_str {
+                        let new_status = match status_normalized.as_str() {
+                            "PENDING" => TaskStatus::Pending,
                             "RUNNING" => TaskStatus::Running,
                             "SUCCESS" => TaskStatus::Success,
                             "FAILED" => TaskStatus::Failed,
-                            _ => TaskStatus::Pending,
+                            _ => TaskStatus::Sleeping,
                         };
 
                         if let Some(task) =
@@ -181,6 +186,7 @@ impl eframe::App for ArthemisApp {
                             task.status = new_status.clone();
                             if new_status == TaskStatus::Running {
                                 task.logs.clear();
+                                self.core.workflow_running = true;
                             }
                         }
                     }
@@ -195,11 +201,12 @@ impl eframe::App for ArthemisApp {
                 {
                     let mut ui_tasks = Vec::new();
                     for (id, name, status_str, logs) in backend_tasks {
-                        let status = match status_str.as_str() {
+                        let status_normalized = status_str.to_ascii_uppercase();
+                        let status = match status_normalized.as_str() {
                             "RUNNING" => TaskStatus::Running,
                             "SUCCESS" => TaskStatus::Success,
                             "FAILED" => TaskStatus::Failed,
-                            _ => TaskStatus::Pending,
+                            _ => TaskStatus::Sleeping,
                         };
                         ui_tasks.push(Task {
                             id,
@@ -219,13 +226,29 @@ impl eframe::App for ArthemisApp {
             }
         }
 
+        if self.core.workflow_running {
+            let has_running = self
+                .core
+                .current_tasks
+                .iter()
+                .any(|t| t.status == TaskStatus::Running);
+            let has_pending = self
+                .core
+                .current_tasks
+                .iter()
+                .any(|t| t.status == TaskStatus::Pending);
+            if !has_running && !has_pending {
+                self.core.workflow_running = false;
+            }
+        }
+
         if !self.ui.is_maximized {
             self.ui.is_maximized = true;
         }
 
         ui::sidebar::draw(ctx, &mut self.ui);
         ui::explorer::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
-        ui::central::draw(ctx, &self.ui, &self.core);
+        ui::central::draw(ctx, &self.ui, &mut self.core, self.db.as_ref());
 
         ui::modals::draw_import_modal(ctx, &mut self.ui);
     }

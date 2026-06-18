@@ -1,4 +1,4 @@
-use crate::db::{Database, TaskStatus};
+use crate::db::Database;
 use crate::state::CoordinatorState;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -30,7 +30,7 @@ pub fn start_watchdog(
                     let db = database.lock().unwrap();
                     // let _ = db.clear_task_logs(task_id);
 
-                    if let Err(e) = db.update_task_status(task_id, TaskStatus::Pending) {
+                    if let Err(e) = db.set_task_pending(task_id) {
                         println!(
                             "SUPERVISOR: Error crítico al actualizar base de datos: {}",
                             e

@@ -89,7 +89,7 @@ fn start_dispatcher(
                             println!("Asignando tarea '{}' al worker {}", task.name, worker_id);
 
                             let _ = db.clear_task_logs(task.id);
-                            let _ = db.update_task_status(task.id, TaskStatus::Running);
+                            let _ = db.start_task(task.id);
 
                             if let Some(tx) = &ui_tx {
                                 let _ = tx.send(format!("STATUS:{}:RUNNING", task.id));
@@ -122,7 +122,7 @@ fn start_dispatcher(
                                         "Fallo al enviar la tarea '{}' al worker {}. Revertiendo...",
                                         task.name, worker_id
                                     );
-                                    let _ = db.update_task_status(task.id, TaskStatus::Pending);
+                                    let _ = db.set_task_pending(task.id);
                                     state.set_worker_free(&worker_id);
 
                                     if let Some(tx) = &ui_tx {

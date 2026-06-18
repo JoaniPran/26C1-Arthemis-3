@@ -1,4 +1,4 @@
-use crate::db::{Database, TaskRecord, TaskStatus};
+use crate::db::{Database, TaskRecord};
 use rusqlite::{Result, params};
 
 impl Database {
@@ -18,7 +18,7 @@ impl Database {
         produces: Option<&str>,
     ) -> Result<i32> {
         self.conn.execute(
-            "INSERT INTO tasks (workflow_id, name, command, status, produces) VALUES (?1, ?2, ?3, 'PENDING', ?4)",
+            "INSERT INTO tasks (workflow_id, name, command, status, produces) VALUES (?1, ?2, ?3, 'SLEEPING', ?4)",
             params![workflow_id, name, command, produces],
         )?;
         Ok(self.conn.last_insert_rowid() as i32)
@@ -40,11 +40,80 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_task_status(&self, task_id: i32, status: TaskStatus) -> Result<()> {
+    fn update_task_status_internal(&self, task_id: i32, status: &str) -> Result<()> {
         self.conn.execute(
             "UPDATE tasks SET status = ?1 WHERE id = ?2",
-            params![status.to_string(), task_id],
+            params![status, task_id],
         )?;
+        Ok(())
+    }
+
+    pub fn set_task_pending(&self, task_id: i32) -> Result<(), String> {
+        let estado_actual = self
+            .get_task_status_by_id(task_id)
+            .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
+
+        if estado_actual != "SLEEPING" {
+            return Err(format!(
+                "Transición inválida: No se puede pasar a PENDING una tarea en estado {}",
+                estado_actual
+            ));
+        }
+
+        self.update_task_status_internal(task_id, "PENDING")
+            .map_err(|e| format!("Error de BDD al iniciar tarea: {}", e))?;
+        Ok(())
+    }
+
+    pub fn start_task(&self, task_id: i32) -> Result<(), String> {
+        let estado_actual = self
+            .get_task_status_by_id(task_id)
+            .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
+
+        if estado_actual != "PENDING" {
+            return Err(format!(
+                "Transición inválida: No se puede pasar a RUNNING una tarea en estado {}",
+                estado_actual
+            ));
+        }
+
+        self.update_task_status_internal(task_id, "RUNNING")
+            .map_err(|e| format!("Error de BDD al iniciar tarea: {}", e))?;
+        Ok(())
+    }
+
+    /// Transición: RUNNING -> SUCCESS
+    pub fn complete_task(&self, task_id: i32) -> Result<(), String> {
+        let estado_actual = self
+            .get_task_status_by_id(task_id)
+            .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
+
+        if estado_actual != "RUNNING" {
+            return Err(format!(
+                "Transición inválida: No se puede completar una tarea en estado {}",
+                estado_actual
+            ));
+        }
+
+        self.update_task_status_internal(task_id, "SUCCESS")
+            .map_err(|e| format!("Error de BDD al completar tarea: {}", e))?;
+        Ok(())
+    }
+
+    pub fn fail_task(&self, task_id: i32) -> Result<(), String> {
+        let estado_actual = self
+            .get_task_status_by_id(task_id)
+            .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
+
+        if estado_actual != "RUNNING" {
+            return Err(format!(
+                "Transición inválida: No se puede fallar una tarea en estado {}",
+                estado_actual
+            ));
+        }
+
+        self.update_task_status_internal(task_id, "FAILED")
+            .map_err(|e| format!("Error de BDD al fallar tarea: {}", e))?;
         Ok(())
     }
 
@@ -223,13 +292,17 @@ mod test {
         assert_eq!(ready_tasks.len(), 1);
         assert_eq!(ready_tasks[0].id, t1);
 
-        db.update_task_status(t1, TaskStatus::Success).unwrap();
+        db.set_task_pending(t1).unwrap();
+        db.start_task(t1).unwrap();
+        db.complete_task(t1).unwrap();
 
         let ready_tasks = db.get_ready_tasks().unwrap();
         assert_eq!(ready_tasks.len(), 1);
         assert_eq!(ready_tasks[0].id, t2);
 
-        db.update_task_status(t2, TaskStatus::Failed).unwrap();
+        db.set_task_pending(t2).unwrap();
+        db.start_task(t2).unwrap();
+        db.fail_task(t2).unwrap();
 
         let ready_tasks = db.get_ready_tasks().unwrap();
         assert_eq!(ready_tasks.len(), 0);
@@ -243,7 +316,9 @@ mod test {
             .unwrap();
         let t1 = db.insert_task(wf_id, "Tarea 1", "echo 1", None).unwrap();
 
-        db.update_task_status(t1, TaskStatus::Success).unwrap();
+        db.set_task_pending(t1).unwrap();
+        db.start_task(t1).unwrap();
+        db.complete_task(t1).unwrap();
         db.insert_log(t1, "Log de ejecución 1").unwrap();
 
         db.reset_workflow(wf_id).unwrap();
