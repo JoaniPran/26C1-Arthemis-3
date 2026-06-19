@@ -233,7 +233,9 @@ impl Database {
         Ok(artifacts)
     }
 
-    pub fn reset_workflow(&self, workflow_id: i32) -> Result<()> {
+    pub fn reset_workflow(&self, workflow_name: String) -> Result<()> {
+        let workflow_id = self.get_workflow_id(&workflow_name)?;
+
         self.conn.execute(
             "UPDATE tasks SET status = 'PENDING' WHERE workflow_id = ?1",
             params![workflow_id],
@@ -321,7 +323,7 @@ mod test {
         db.complete_task(t1).unwrap();
         db.insert_log(t1, "Log de ejecución 1").unwrap();
 
-        db.reset_workflow(wf_id).unwrap();
+        db.reset_workflow("pipeline_reinicio.yaml".into()).unwrap();
 
         let ready_tasks = db.get_ready_tasks().unwrap();
         assert_eq!(ready_tasks.len(), 1);
