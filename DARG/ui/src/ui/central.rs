@@ -37,26 +37,16 @@ pub fn draw(
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        let icon_stop = "\u{200B}\u{f04d}\u{200B}";
                                         let icon_play = "\u{200B}\u{f04b}\u{200B}";
                                         let icon_pause = "\u{200B}\u{f04c}\u{200B}";
                                         let icon_reset = "\u{200B}\u{f0e2}\u{200B}";
 
-                                        let btn_stop = egui::Button::new(
-                                            egui::RichText::new(icon_stop).size(16.0),
-                                        )
-                                        .frame(false)
-                                        .rounding(egui::Rounding::same(6.0));
-
-                                        if ui
-                                            .add_sized([28.0, 28.0], btn_stop)
-                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
-                                            .clicked()
-                                        {
-                                            println!("Deteniendo...");
-                                        }
-
                                         ui.add_space(5.0);
+
+                                        let has_run_already = !core_state.current_tasks.is_empty() 
+                                            && core_state.current_tasks.iter().all(|t| 
+                                                t.status == TaskStatus::Success || t.status == TaskStatus::Failed
+                                            );
 
                                         let is_running = core_state.workflow_execution_state
                                             == WorkflowExecutionState::Running;
@@ -80,7 +70,10 @@ pub fn draw(
                                             btn_play = btn_play.sense(egui::Sense::hover());
                                             btn_reset = btn_reset.sense(egui::Sense::hover());
                                             ctx.request_repaint();
+                                        }else if has_run_already {
+                                            btn_play = btn_play.sense(egui::Sense::hover());
                                         }
+
 
                                         let play_response = ui.add_sized([28.0, 28.0], btn_play);
                                         let reset_response = ui.add_sized([28.0, 28.0], btn_reset);
@@ -110,14 +103,8 @@ pub fn draw(
 
                                             if reset_response.clicked() {
                                                 if let Some(database) = db {
-                                                    let _ = database.reset_workflow(
-                                                        core_state
-                                                            .selected_workflow
-                                                            .clone()
-                                                            .unwrap(),
-                                                    );
                                                     for task in &core_state.current_tasks {
-                                                        let _ = database.set_task_pending(task.id);
+                                                        let _ = database.sleeping_task(task.id);
                                                     }
                                                 }
                                                 for task in &mut core_state.current_tasks {

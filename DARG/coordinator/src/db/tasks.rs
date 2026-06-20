@@ -82,7 +82,6 @@ impl Database {
         Ok(())
     }
 
-    /// Transición: RUNNING -> SUCCESS
     pub fn complete_task(&self, task_id: i32) -> Result<(), String> {
         let estado_actual = self
             .get_task_status_by_id(task_id)
@@ -97,6 +96,23 @@ impl Database {
 
         self.update_task_status_internal(task_id, "SUCCESS")
             .map_err(|e| format!("Error de BDD al completar tarea: {}", e))?;
+        Ok(())
+    }
+
+    pub fn sleeping_task(&self, task_id: i32) -> Result<(), String> {
+        let estado_actual = self
+            .get_task_status_by_id(task_id)
+            .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
+
+        if estado_actual != "SUCCESS" {
+            return Err(format!(
+                "Transición inválida: No se puede dormir una tarea en estado {}",
+                estado_actual
+            ));
+        }
+
+        self.update_task_status_internal(task_id, "SLEEPING")
+            .map_err(|e| format!("Error de BDD al dormir la tarea: {}", e))?;
         Ok(())
     }
 
