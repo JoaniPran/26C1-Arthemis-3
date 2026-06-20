@@ -43,10 +43,11 @@ pub fn draw(
 
                                         ui.add_space(5.0);
 
-                                        let has_run_already = !core_state.current_tasks.is_empty() 
-                                            && core_state.current_tasks.iter().all(|t| 
-                                                t.status == TaskStatus::Success || t.status == TaskStatus::Failed
-                                            );
+                                        let has_run_already = !core_state.current_tasks.is_empty()
+                                            && core_state.current_tasks.iter().all(|t| {
+                                                t.status == TaskStatus::Success
+                                                    || t.status == TaskStatus::Failed
+                                            });
 
                                         let is_running = core_state.workflow_execution_state
                                             == WorkflowExecutionState::Running;
@@ -70,10 +71,9 @@ pub fn draw(
                                             btn_play = btn_play.sense(egui::Sense::hover());
                                             btn_reset = btn_reset.sense(egui::Sense::hover());
                                             ctx.request_repaint();
-                                        }else if has_run_already {
+                                        } else if has_run_already {
                                             btn_play = btn_play.sense(egui::Sense::hover());
                                         }
-
 
                                         let play_response = ui.add_sized([28.0, 28.0], btn_play);
                                         let reset_response = ui.add_sized([28.0, 28.0], btn_reset);

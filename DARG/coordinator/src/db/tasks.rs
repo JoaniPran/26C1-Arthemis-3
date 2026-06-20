@@ -306,11 +306,14 @@ mod test {
         db.insert_dependency(t2, t1).unwrap();
         db.insert_dependency(t3, t2).unwrap();
 
+        db.set_task_pending(t1).unwrap();
+        db.set_task_pending(t2).unwrap();
+        db.set_task_pending(t3).unwrap();
+
         let ready_tasks = db.get_ready_tasks().unwrap();
         assert_eq!(ready_tasks.len(), 1);
         assert_eq!(ready_tasks[0].id, t1);
 
-        db.set_task_pending(t1).unwrap();
         db.start_task(t1).unwrap();
         db.complete_task(t1).unwrap();
 
@@ -318,7 +321,6 @@ mod test {
         assert_eq!(ready_tasks.len(), 1);
         assert_eq!(ready_tasks[0].id, t2);
 
-        db.set_task_pending(t2).unwrap();
         db.start_task(t2).unwrap();
         db.fail_task(t2).unwrap();
 
