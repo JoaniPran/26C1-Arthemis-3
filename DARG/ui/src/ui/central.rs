@@ -76,7 +76,7 @@ pub fn draw(
                                         }
 
                                         let play_response = ui.add_sized([28.0, 28.0], btn_play);
-                                        let mut reset_response = ui.add_sized([28.0, 28.0], btn_reset);
+                                        let reset_response = ui.add_sized([28.0, 28.0], btn_reset);
 
                                         reset_response.clone().on_hover_text("Reset");
 
