@@ -37,80 +37,72 @@ pub fn draw(
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        let icon_play = "\u{200B}\u{f04b}\u{200B}";
-                                        let icon_pause = "\u{200B}\u{f04c}\u{200B}";
-                                        let icon_reset = "\u{200B}\u{f0e2}\u{200B}";
-
                                         ui.add_space(5.0);
+                                        
+                                        let has_started = !core_state.current_tasks.is_empty()
+                                            && core_state.current_tasks.iter().any(|t| t.status != TaskStatus::Sleeping);
 
-                                        let has_run_already = !core_state.current_tasks.is_empty()
+                                        let has_finished = !core_state.current_tasks.is_empty()
                                             && core_state.current_tasks.iter().all(|t| {
-                                                t.status == TaskStatus::Success
-                                                    || t.status == TaskStatus::Failed
+                                                t.status == TaskStatus::Success || t.status == TaskStatus::Failed
                                             });
 
-                                        let is_running = core_state.workflow_execution_state
-                                            == WorkflowExecutionState::Running;
+                                        let can_click = !has_started || has_finished;
 
-                                        let play_icon =
-                                            if is_running { icon_pause } else { icon_play };
+                                        let main_icon = if has_started {
+                                            "\u{200B}\u{f0e2}\u{200B}"
+                                        } else {
+                                            "\u{200B}\u{f04b}\u{200B}"
+                                        };
 
-                                        let mut btn_play = egui::Button::new(
-                                            egui::RichText::new(play_icon).size(16.0),
+                                        let mut btn_action = egui::Button::new(
+                                            egui::RichText::new(main_icon).size(16.0),
                                         )
                                         .frame(false)
                                         .rounding(egui::Rounding::same(6.0));
 
-                                        let mut btn_reset = egui::Button::new(
-                                            egui::RichText::new(icon_reset).size(16.0),
-                                        )
-                                        .frame(false)
-                                        .rounding(egui::Rounding::same(6.0));
-
-                                        if is_running {
-                                            btn_play = btn_play.sense(egui::Sense::hover());
-                                            btn_reset = btn_reset.sense(egui::Sense::hover());
-                                            ctx.request_repaint();
-                                        } else if has_run_already {
-                                            btn_play = btn_play.sense(egui::Sense::hover());
+                                        if !can_click {
+                                            btn_action = btn_action.sense(egui::Sense::hover());
                                         }
 
-                                        let play_response = ui.add_sized([28.0, 28.0], btn_play);
-                                        let reset_response = ui.add_sized([28.0, 28.0], btn_reset);
+                                        let action_response = ui.add_sized([28.0, 28.0], btn_action);
 
-                                        if core_state.workflow_execution_state
-                                            == WorkflowExecutionState::Idle
-                                        {
-                                            let play_response = play_response
-                                                .on_hover_cursor(egui::CursorIcon::PointingHand);
-                                            let reset_response = reset_response
-                                                .on_hover_cursor(egui::CursorIcon::PointingHand);
+                                        if can_click {
+                                            let hover_text = if has_finished {
+                                                "Reiniciar ejecución (Limpia logs y vuelve a comenzar de inmediato)"
+                                            } else {
+                                                "Comenzar ejecución del Pipeline"
+                                            };
 
-                                            if play_response.clicked() {
-                                                core_state.workflow_execution_state =
-                                                    WorkflowExecutionState::Running;
+                                            let action_response = action_response
+                                                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                                .on_hover_text(hover_text);
+
+                                            if action_response.clicked() {
+                                                core_state.workflow_execution_state = WorkflowExecutionState::Running;
+                                                core_state.workflow_running = true;
 
                                                 if let Some(database) = db {
-                                                    for task in &core_state.current_tasks {
-                                                        let _ = database.set_task_pending(task.id);
+                                                    if has_finished {
+                                                        let _ = database.reset_workflow(wf.clone());
+                                                    } else {
+                                                        for task in &core_state.current_tasks {
+                                                            let _ = database.set_task_pending(task.id);
+                                                        }
                                                     }
                                                 }
 
                                                 for task in &mut core_state.current_tasks {
                                                     task.status = TaskStatus::Pending;
-                                                }
-                                            }
-
-                                            if reset_response.clicked() {
-                                                if let Some(database) = db {
-                                                    for task in &core_state.current_tasks {
-                                                        let _ = database.sleeping_task(task.id);
+                                                    if has_finished {
+                                                        task.logs.clear();
                                                     }
                                                 }
-                                                for task in &mut core_state.current_tasks {
-                                                    task.status = TaskStatus::Sleeping;
-                                                    task.logs.clear();
-                                                }
+                                            }
+                                        } else {
+                                            let _ = action_response.on_hover_text("Pipeline en ejecución. Espere a que termine o falle.");
+                                            if core_state.workflow_execution_state == WorkflowExecutionState::Running {
+                                                ctx.request_repaint(); 
                                             }
                                         }
                                     },
