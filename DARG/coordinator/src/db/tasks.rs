@@ -104,7 +104,7 @@ impl Database {
             .get_task_status_by_id(task_id)
             .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
 
-        if estado_actual != "SUCCESS" {
+        if estado_actual != "SUCCESS" && estado_actual != "FAILED" {
             return Err(format!(
                 "Transición inválida: No se puede dormir una tarea en estado {}",
                 estado_actual
