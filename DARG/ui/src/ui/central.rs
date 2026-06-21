@@ -76,29 +76,34 @@ pub fn draw(
                                         }
 
                                         let play_response = ui.add_sized([28.0, 28.0], btn_play);
-                                        let reset_response = ui.add_sized([28.0, 28.0], btn_reset);
+                                        let mut reset_response = ui.add_sized([28.0, 28.0], btn_reset);
+
+                                        reset_response.clone().on_hover_text("Reset");
 
                                         if core_state.workflow_execution_state
                                             == WorkflowExecutionState::Idle
                                         {
                                             let play_response = play_response
                                                 .on_hover_cursor(egui::CursorIcon::PointingHand);
-                                            let reset_response = reset_response
-                                                .on_hover_cursor(egui::CursorIcon::PointingHand);
 
-                                            if play_response.clicked() {
-                                                core_state.workflow_execution_state =
-                                                    WorkflowExecutionState::Running;
+                                            if !has_run_already {
+                                                if play_response.clicked() {
+                                                    core_state.workflow_execution_state =
+                                                        WorkflowExecutionState::Running;
 
-                                                if let Some(database) = db {
-                                                    for task in &core_state.current_tasks {
-                                                        let _ = database.set_task_pending(task.id);
+                                                    if let Some(database) = db {
+                                                        for task in &core_state.current_tasks {
+                                                            let _ =
+                                                                database.set_task_pending(task.id);
+                                                        }
+                                                    }
+
+                                                    for task in &mut core_state.current_tasks {
+                                                        task.status = TaskStatus::Pending;
                                                     }
                                                 }
-
-                                                for task in &mut core_state.current_tasks {
-                                                    task.status = TaskStatus::Pending;
-                                                }
+                                            }else{
+                                                let _ = play_response.on_hover_text("Pipeline terminado. Presione Reset para volver a ejecutar.");
                                             }
 
                                             if reset_response.clicked() {
