@@ -14,6 +14,7 @@ impl Theme {
     pub const STATUS_SUCCESS: Color32 = Color32::from_gray(140);
     pub const STATUS_FAILED: Color32 = Color32::LIGHT_RED;
     pub const STATUS_PENDING: Color32 = Color32::from_gray(140);
+    pub const STATUS_SLEEPING: Color32 = Color32::from_gray(110);
     pub const STATUS_RUNNING: Color32 = Color32::from_gray(140);
 
     pub const TEXT_WHITE: Color32 = Color32::WHITE;

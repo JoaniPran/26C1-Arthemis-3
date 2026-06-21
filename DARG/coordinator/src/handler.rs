@@ -1,4 +1,4 @@
-use crate::db::{Database, TaskStatus};
+use crate::db::Database;
 use crate::monitor::LogEvent;
 use crate::state::CoordinatorState;
 use common::Message;
@@ -85,7 +85,7 @@ impl WorkerHandler {
             );
             let db = self.database.lock().unwrap();
             // let _ = db.clear_task_logs(task_id);
-            let _ = db.update_task_status(task_id, TaskStatus::Pending);
+            let _ = db.set_task_pending(task_id);
 
             if let Some(tx) = &self.ui_tx {
                 let _ = tx.send(format!("STATUS:{}:PENDING", task_id));
@@ -108,18 +108,19 @@ impl WorkerHandler {
     }
 
     fn handle_status(&self, task_id: i32, status: String) {
-        let (final_status, status_str) = if status == "Success" {
-            (TaskStatus::Success, "SUCCESS")
+        let status_normalized = status.to_ascii_uppercase();
+        let db = self.database.lock().unwrap();
+
+        if status_normalized == "SUCCESS" {
+            let _ = db.complete_task(task_id);
         } else {
-            (TaskStatus::Failed, "FAILED")
+            let _ = db.fail_task(task_id);
         };
 
-        let db = self.database.lock().unwrap();
-        let _ = db.update_task_status(task_id, final_status);
         drop(db);
 
         if let Some(tx) = &self.ui_tx {
-            let _ = tx.send(format!("STATUS:{}:{}", task_id, status_str));
+            let _ = tx.send(format!("STATUS:{}:{}", task_id, status_normalized));
         }
 
         if let Some(id) = &self.worker_id {
@@ -162,7 +163,7 @@ impl WorkerHandler {
 
                 let db = self.database.lock().unwrap();
                 // let _ = db.clear_task_logs(task_id);
-                let _ = db.update_task_status(task_id, TaskStatus::Pending);
+                let _ = db.set_task_pending(task_id);
 
                 if let Some(tx) = &self.ui_tx {
                     let _ = tx.send(format!("STATUS:{}:PENDING", task_id));

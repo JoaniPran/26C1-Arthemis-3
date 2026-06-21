@@ -2,7 +2,7 @@ use crate::app::{Task, TaskStatus};
 use crate::ui::themes::Theme;
 use eframe::egui;
 
-pub fn draw(ctx: &egui::Context, ui: &mut egui::Ui, task: &Task) {
+pub fn draw(ctx: &egui::Context, ui: &mut egui::Ui, task: &mut Task) {
     let id = ui.make_persistent_id(task.id);
     let mut state = egui::collapsing_header::CollapsingState::load_with_default_open(
         ctx,
@@ -53,6 +53,7 @@ pub fn draw(ctx: &egui::Context, ui: &mut egui::Ui, task: &Task) {
             ui.add_space(15.0);
 
             let (icon, color) = match task.status {
+                TaskStatus::Sleeping => ("\u{f017}", Theme::STATUS_SLEEPING),
                 TaskStatus::Pending => ("\u{f017}", Theme::STATUS_PENDING),
                 TaskStatus::Running => ("", Theme::STATUS_RUNNING),
                 TaskStatus::Success => ("\u{f058}", Theme::STATUS_SUCCESS),

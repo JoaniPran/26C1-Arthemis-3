@@ -51,6 +51,13 @@ fn test_worker_handler_full_integration() {
     let msg_reg = Message::RegisterWorker {
         id: "test-worker-1".to_string(),
     };
+
+    {
+        let db_lock = db.lock().unwrap();
+        db_lock.set_task_pending(task_id).unwrap();
+        db_lock.start_task(task_id).unwrap();
+    }
+
     let mut reg_json = serde_json::to_string(&msg_reg).unwrap();
     reg_json.push('\n');
     client_stream.write_all(reg_json.as_bytes()).unwrap();

@@ -1,9 +1,15 @@
-use crate::app::{AppView, CoreState, UiState};
+use crate::app::{AppView, CoreState, TaskStatus, UiState, WorkflowExecutionState};
 use crate::ui::components::task_row;
 use crate::ui::themes::Theme;
+use coordinator::db::Database;
 use eframe::egui;
 
-pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
+pub fn draw(
+    ctx: &egui::Context,
+    ui_state: &UiState,
+    core_state: &mut CoreState,
+    db: Option<&Database>,
+) {
     egui::CentralPanel::default().show(ctx, |ui| match ui_state.current_view {
         AppView::Workflows => {
             if let Some(wf) = &core_state.selected_workflow {
@@ -31,37 +37,73 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
-                                        let icon_stop = "\u{200B}\u{f04d}\u{200B}";
-                                        let icon_play = "\u{200B}\u{f04b}\u{200B}";
+                                        ui.add_space(5.0);
+                                        
+                                        let has_started = !core_state.current_tasks.is_empty()
+                                            && core_state.current_tasks.iter().any(|t| t.status != TaskStatus::Sleeping);
 
-                                        let btn_stop = egui::Button::new(
-                                            egui::RichText::new(icon_stop).size(16.0),
+                                        let has_finished = !core_state.current_tasks.is_empty()
+                                            && core_state.current_tasks.iter().all(|t| {
+                                                t.status == TaskStatus::Success || t.status == TaskStatus::Failed
+                                            });
+
+                                        let can_click = !has_started || has_finished;
+
+                                        let main_icon = if has_started {
+                                            "\u{200B}\u{f0e2}\u{200B}"
+                                        } else {
+                                            "\u{200B}\u{f04b}\u{200B}"
+                                        };
+
+                                        let mut btn_action = egui::Button::new(
+                                            egui::RichText::new(main_icon).size(16.0),
                                         )
                                         .frame(false)
                                         .rounding(egui::Rounding::same(6.0));
 
-                                        if ui
-                                            .add_sized([28.0, 28.0], btn_stop)
-                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
-                                            .clicked()
-                                        {
-                                            println!("Deteniendo...");
+                                        if !can_click {
+                                            btn_action = btn_action.sense(egui::Sense::hover());
                                         }
 
-                                        ui.add_space(5.0);
+                                        let action_response = ui.add_sized([28.0, 28.0], btn_action);
 
-                                        let btn_play = egui::Button::new(
-                                            egui::RichText::new(icon_play).size(16.0),
-                                        )
-                                        .frame(false)
-                                        .rounding(egui::Rounding::same(6.0));
+                                        if can_click {
+                                            let hover_text = if has_finished {
+                                                "Reiniciar ejecución (Limpia logs y vuelve a comenzar de inmediato)"
+                                            } else {
+                                                "Comenzar ejecución del Pipeline"
+                                            };
 
-                                        if ui
-                                            .add_sized([28.0, 28.0], btn_play)
-                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
-                                            .clicked()
-                                        {
-                                            println!("Ejecutando...");
+                                            let action_response = action_response
+                                                .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                                .on_hover_text(hover_text);
+
+                                            if action_response.clicked() {
+                                                core_state.workflow_execution_state = WorkflowExecutionState::Running;
+                                                core_state.workflow_running = true;
+
+                                                if let Some(database) = db {
+                                                    if has_finished {
+                                                        let _ = database.reset_workflow(wf.clone());
+                                                    } else {
+                                                        for task in &core_state.current_tasks {
+                                                            let _ = database.set_task_pending(task.id);
+                                                        }
+                                                    }
+                                                }
+
+                                                for task in &mut core_state.current_tasks {
+                                                    task.status = TaskStatus::Pending;
+                                                    if has_finished {
+                                                        task.logs.clear();
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            let _ = action_response.on_hover_text("Pipeline en ejecución. Espere a que termine o falle.");
+                                            if core_state.workflow_execution_state == WorkflowExecutionState::Running {
+                                                ctx.request_repaint(); 
+                                            }
                                         }
                                     },
                                 );
@@ -93,7 +135,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &CoreState) {
                             egui::ScrollArea::vertical()
                                 .auto_shrink([false; 2])
                                 .show(ui, |ui| {
-                                    for task in &core_state.current_tasks {
+                                    for task in &mut core_state.current_tasks {
                                         task_row::draw(ctx, ui, task);
                                     }
                                 });
