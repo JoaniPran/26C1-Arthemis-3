@@ -98,6 +98,8 @@ impl WorkerHandler {
                 .try_clone()
                 .expect("Error al clonar stream para registro"),
         );
+
+        self.notify_worker_count();
         println!("Worker registrado: {}.", id);
     }
 
@@ -156,6 +158,7 @@ impl WorkerHandler {
     fn cleanup(&self) {
         if let Some(id) = &self.worker_id {
             let task_id_opt = self.state.remove_worker(id);
+            self.notify_worker_count();
             println!("Worker {} desconectado.", id);
 
             if let Some(task_id) = task_id_opt {
@@ -169,6 +172,12 @@ impl WorkerHandler {
                     let _ = tx.send(format!("STATUS:{}:PENDING", task_id));
                 }
             }
+        }
+    }
+
+    fn notify_worker_count(&self) {
+        if let Some(tx) = &self.ui_tx {
+            let _ = tx.send(format!("WORKERS:{}", self.state.worker_count()));
         }
     }
 }

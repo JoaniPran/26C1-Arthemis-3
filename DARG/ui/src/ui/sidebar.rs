@@ -58,6 +58,21 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState) {
 
                     ui.add_space(10.0);
                 }
+
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+                    ui.add_space(8.0);
+                    ui.label(
+                        egui::RichText::new(ui_state.connected_workers.to_string())
+                            .size(18.0)
+                            .strong()
+                            .color(Theme::TEXT_WHITE),
+                    );
+                    ui.label(
+                        egui::RichText::new("workers")
+                            .size(10.0)
+                            .color(Theme::TEXT_MUTED),
+                    );
+                });
             });
 
             let rect = ui.max_rect();

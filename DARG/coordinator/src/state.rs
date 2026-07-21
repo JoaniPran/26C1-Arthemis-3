@@ -27,6 +27,10 @@ impl CoordinatorState {
         }
     }
 
+    pub fn worker_count(&self) -> usize {
+        self.workers.lock().unwrap().len()
+    }
+
     pub fn add_worker(&self, id: String, stream: TcpStream) {
         let mut map = self.workers.lock().unwrap();
         map.insert(
@@ -128,6 +132,21 @@ mod tests {
         let final_assignment = state.assign_worker(101);
         assert!(final_assignment.is_some());
         assert_eq!(final_assignment.unwrap().0, "worker-1");
+    }
+
+    #[test]
+    fn test_worker_count_tracks_lifecycle() {
+        let state = CoordinatorState::new();
+        assert_eq!(state.worker_count(), 0);
+
+        state.add_worker("worker-1".to_string(), create_dummy_stream());
+        assert_eq!(state.worker_count(), 1);
+
+        state.add_worker("worker-2".to_string(), create_dummy_stream());
+        assert_eq!(state.worker_count(), 2);
+
+        state.remove_worker("worker-1");
+        assert_eq!(state.worker_count(), 1);
     }
 
     #[test]

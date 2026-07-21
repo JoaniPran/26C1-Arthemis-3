@@ -37,6 +37,7 @@ pub struct UiState {
     pub import_is_error: bool,
     pub is_importing: bool,
     pub expected_file: String,
+    pub connected_workers: usize,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -99,6 +100,7 @@ impl Default for ArthemisApp {
                 import_is_error: false,
                 is_importing: false,
                 expected_file: String::new(),
+                connected_workers: 0,
             },
             core: CoreState {
                 workflows: vec![],
@@ -118,7 +120,13 @@ impl eframe::App for ArthemisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(rx) = &self.backend_rx {
             while let Ok(msg) = rx.try_recv() {
-                if msg.starts_with("LOADED:") {
+                if msg.starts_with("WORKERS:") {
+                    if let Some(count) = msg.split(':').nth(1)
+                        && let Ok(parsed) = count.parse::<usize>()
+                    {
+                        self.ui.connected_workers = parsed;
+                    }
+                } else if msg.starts_with("LOADED:") {
                     let parts: Vec<&str> = msg.splitn(3, ':').collect();
                     if parts.len() == 3 {
                         let file_name = parts[1].to_string();

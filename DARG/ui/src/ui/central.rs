@@ -34,6 +34,16 @@ pub fn draw(
                                         .color(Theme::TEXT_WHITE),
                                 );
 
+                                ui.add_space(12.0);
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "Workers online: {}",
+                                        ui_state.connected_workers
+                                    ))
+                                    .size(13.0)
+                                    .color(Theme::TEXT_MUTED),
+                                );
+
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
@@ -172,6 +182,16 @@ pub fn draw(
                 ui.vertical_centered(|ui| {
                     ui.heading("Configuración del Clúster");
                     ui.add_space(10.0);
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "Workers online: {}",
+                            ui_state.connected_workers
+                        ))
+                        .size(15.0)
+                        .strong()
+                        .color(Theme::TEXT_WHITE),
+                    );
+                    ui.add_space(6.0);
                     ui.label(
                         egui::RichText::new("Aquí irán las opciones de los Workers y red.")
                             .color(Theme::TEXT_MUTED),
