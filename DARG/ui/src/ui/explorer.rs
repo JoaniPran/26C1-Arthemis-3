@@ -164,7 +164,7 @@ pub fn draw(
                 ui.painter().vline(
                     rect.right(),
                     rect.y_range(),
-                    egui::Stroke::new(1.0, Theme::BORDER_DARK),
+                    egui::Stroke::new(1.0_f32, Theme::BORDER_DARK),
                 );
             });
     }

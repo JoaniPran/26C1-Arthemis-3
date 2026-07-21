@@ -1,4 +1,4 @@
-use crate::db::{Database, TaskRecord};
+use crate::db::{Database, TaskRecord, TaskUiRow};
 use rusqlite::{Result, params};
 
 impl Database {
@@ -194,7 +194,7 @@ impl Database {
     pub fn get_tasks_for_ui(
         &self,
         file_name: &str,
-    ) -> Result<Vec<(i32, String, String, Vec<String>)>> {
+    ) -> Result<Vec<TaskUiRow>> {
         let wf_id: i32 = match self.get_workflow_id(file_name) {
             Ok(id) => id,
             Err(_) => return Ok(vec![]),
