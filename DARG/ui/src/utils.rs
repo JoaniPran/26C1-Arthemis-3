@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub fn copy_workflow_file(source_path: &PathBuf) -> Result<String, String> {
+pub fn copy_workflow_file(source_path: &PathBuf, username: &str) -> Result<String, String> {
     let ext = source_path
         .extension()
         .unwrap_or_default()
@@ -13,8 +13,9 @@ pub fn copy_workflow_file(source_path: &PathBuf) -> Result<String, String> {
         return Err("Error: Formato no soportado. Solo se permiten archivos .yaml".to_string());
     }
 
-    let dest_dir = Path::new("workflows");
-    if let Err(e) = fs::create_dir_all(dest_dir) {
+    let dest_dir = Path::new("workflows").join(username);
+
+    if let Err(e) = fs::create_dir_all(&dest_dir) {
         return Err(format!("Error al crear carpeta destino: {}", e));
     }
 

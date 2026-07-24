@@ -176,17 +176,22 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
             });
 
             if let Some(path) = pending_path {
-                match copy_workflow_file(&path) {
-                    Ok(file_name) => {
-                        ui_state.is_importing = true;
-                        ui_state.expected_file = file_name;
-                        ui_state.import_message = "Guardando...".to_string();
-                        ui_state.import_is_error = false;
+                if let Some(username) = &ui_state.session_username {
+                    match copy_workflow_file(&path, username) {
+                        Ok(file_name) => {
+                            ui_state.is_importing = true;
+                            ui_state.expected_file = file_name;
+                            ui_state.import_message = "Guardando...".to_string();
+                            ui_state.import_is_error = false;
+                        }
+                        Err(error_msg) => {
+                            ui_state.import_message = error_msg;
+                            ui_state.import_is_error = true;
+                        }
                     }
-                    Err(error_msg) => {
-                        ui_state.import_message = error_msg;
-                        ui_state.import_is_error = true;
-                    }
+                } else {
+                    ui_state.import_message = "Error: Sesión no encontrada.".to_string();
+                    ui_state.import_is_error = true;
                 }
             }
         });

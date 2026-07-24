@@ -26,6 +26,10 @@ pub fn start_artifact_server(port: &str) {
             let filename = url.replace("/upload/", "");
             let filepath = format!("{}/{}", artifacts_dir, filename);
 
+            if let Some(parent) = std::path::Path::new(&filepath).parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+
             let mut file = match File::create(&filepath) {
                 Ok(f) => f,
                 Err(e) => {
@@ -37,6 +41,7 @@ pub fn start_artifact_server(port: &str) {
             let mut body = request
                 .data()
                 .expect("Fallo al leer el cuerpo del request HTTP");
+            
             return match std::io::copy(&mut body, &mut file) {
                 Ok(_) => {
                     println!("Artefacto guardado exitosamente: {}", filename);
