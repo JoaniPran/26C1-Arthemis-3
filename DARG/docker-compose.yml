@@ -1,4 +1,7 @@
 
+
+name: sistema-distribuido
+
 services:
 
   coordinator:

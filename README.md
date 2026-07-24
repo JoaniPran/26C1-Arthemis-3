@@ -2,89 +2,92 @@
 
 ## Integrantes
 
-## Como usar
+# Como usar
 
 A continuación se detallan los pasos para compilar y ejecutar el programa.
 
-### Compilación
+## Compilación
 
-Para compilar el proyecto (modo debug):
+- Para compilar el proyecto (modo debug):
 
-```bash
-cargo build
-```
+    ```bash
+        cargo build
+    ```
 
-Para compilar en modo release:
+- Para compilar en modo release:
 
-```bash
-cargo build --release
-```
+    ```bash
+    cargo build --release
+    ```
 
-### Cómo correr
+# Cómo correr
 
-El comando para ejecutar la interfaz gráfica (UI) es:
+- El comando para ejecutar la interfaz gráfica (UI) es:
 
-```bash
-cargo run -p ui
-```
+    ```bash
+    cargo run -p ui
+    ```
 
-Sin la UI, ejecutar el coordinador con:
+-   Sin la UI, ejecutar el coordinador con:
 
-```bash
-cargo run -p coordinator
-```
+    ```bash
+    cargo run -p coordinator
+    ```
 
 Nota: el coordinador siempre escucha en todas las interfaces (0.0.0.0) por defecto.
 
-Los workers se inician así (por defecto):
+-   Los workers se inician así (por defecto):
 
-```bash
-cargo run -p worker <nombre_a_asignar>
+    ```bash
+    cargo run -p worker <nombre_a_asignar>
 
-cargo run -p worker <nombre_a_asignar> <ip_a_conectarse>
-```
+    cargo run -p worker <nombre_a_asignar> <ip_a_conectarse>
+    ```
 
-### Docker-Compose
+## Docker-Compose
 
-para crear una imagen para poder levantar el cordinador y un solo worker
+- para crear una imagen para poder levantar el cordinador y un solo worker
 
-```bash
-docker compose up --build -d
-```
+    ```bash
+    docker compose up --build -d
+    ```
 
-Para levantar el Coordinador + N Workers (ejemplo: 3 workers):
+-   Para levantar el Coordinador + N Workers (ejemplo: 3 workers):
 
-```bash
-docker compose up --build -d --scale worker=3
-```
+    ```bash
+    docker compose up --build -d --scale worker=3
+    ```
 
-si unicamente se desea correr el coordinador en un contendor aparte
+-   si unicamente se desea correr el coordinador en un contendor aparte
 
-```bash
-docker compose up -d coordinator
-```
+    ```bash
+    docker compose up -d coordinator
+    ```
 
-Ver los logs únicamente del coordinador:
+-   Ver los logs únicamente del coordinador:
 
-```bash
-docker compose logs -f coordinator
-```
+    ```bash
+    docker compose logs -f coordinator
+    ```
+
 - Reconstruir e iniciar solo el coordinador:
-```bash
-docker compose up --build -d coordinator
-```
+    ```bash
+    docker compose up --build -d coordinator
+    ```
 
-Para detener todo (conservando la base de datos):
+-   Para detener todo (conservando la base de datos):
 
-```bash
-docker compose stop
-```
-Para destruir los contenedores y limpiar volúmenes:
+    ```bash
+    docker compose stop
+    ```
 
-```bash
-docker compose down -v
-```
-# Ver los logs de un worker ESPECÍFICO:
+-   Para destruir los contenedores y limpiar volúmenes:
+
+    ```bash
+    docker compose down -v
+    ```
+
+### Ver los logs de un worker ESPECÍFICO:
 
 - Primero, consultá los nombres de los contenedores activos:
 
@@ -101,18 +104,18 @@ docker compose down -v
 
 ## Correr Wokers 
 
-Para crear una imagen nueva en Docker del worker:
+-   Para crear una imagen nueva en Docker del worker:
 
-```bash
-docker build -t mi-worker .
-```
+    ```bash
+    docker build -t mi-worker .
+    ```
 Nota: la imagen del Docker se llamara mi-worker.
 
-Para ejecutar un worker en Docker (con la red del host):
+-   Para ejecutar un worker en Docker (con la red del host):
 
-```bash
-docker run -d --network host --name worker_uno mi-worker sh -c "./target/release/worker <nombre_del_worker> <ip_a_conectarse>"
-```
+    ```bash
+    docker run -d --network host --name worker_uno mi-worker sh -c "./target/release/worker <nombre_del_worker> <ip_a_conectarse>"
+    ```
 
 Nota: la opción `--name` especifica el nombre del contenedor.
 
@@ -124,35 +127,34 @@ docker run -d --network host --name worker_uno mi-worker sh -c "./target/release
 
 Si estás usando `--network host` en Linux, `127.0.0.1` debería funcionar, pero en algunos entornos Docker el contenedor no puede ver al host por ese loopback. Usa la IP real de la máquina donde corre el coordinador.
 
-Para ver los logs del contenedor:
+- Para ver los logs del contenedor:
+    ```bash
+    docker logs <nombre_del_contenedor>
+    ```
 
-```bash
-docker logs <nombre_del_contenedor>
-```
+-   Para detener la ejecución del contenedor:
 
-Para detener la ejecución del contenedor:
+    ```bash
+    docker stop <nombre_del_contenedor>
+    ```
 
-```bash
-docker stop <nombre_del_contenedor>
-```
+-  Para eliminar el contenedor:
 
-Para eliminar el contenedor:
+    ```bash
+    docker rm <nombre_del_contenedor>
+    ```
 
-```bash
-docker rm <nombre_del_contenedor>
-```
+- Para eliminar la imagen 
 
-Para eliminar la imagen 
-
-```bash
-docker rmi <id_o_nombre>
-```
+    ```bash
+    docker rmi <id_o_nombre>
+    ```
 
 ### Cómo testear
 
-Ejecuta los tests del repo con:
+- Ejecuta los tests del repo con:
 
-```bash
-cargo test
-```
+    ```bash
+    cargo test
+    ```
 
