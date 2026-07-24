@@ -11,7 +11,7 @@ A continuación se detallan los pasos para compilar y ejecutar el programa.
 - Para compilar el proyecto (modo debug):
 
     ```bash
-        cargo build
+    cargo build
     ```
 
 - Para compilar en modo release:
