@@ -68,8 +68,8 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState) {
                             .color(Theme::TEXT_WHITE),
                     );
                     ui.label(
-                        egui::RichText::new("workers")
-                            .size(10.0)
+                        egui::RichText::new("workers conectados")
+                            .size(9.0)
                             .color(Theme::TEXT_MUTED),
                     );
                 });

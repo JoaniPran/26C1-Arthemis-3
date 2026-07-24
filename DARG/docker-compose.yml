@@ -1,0 +1,34 @@
+
+services:
+
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mi-worker
+    container_name: coordinator
+    ports:
+      - "8080:8080" 
+      - "8081:8081" 
+    command: ./target/release/coordinator
+    env_file:
+      - .env
+    volumes:
+      - db_data:/app/data
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mi-worker
+    network_mode: "host"
+    command: sh -c "./target/release/worker worker_$$(hostname) ${COORDINATOR_IP:-127.0.0.1}:${COORDINATOR_PORT:-8080}"
+    env_file:
+      - .env
+    depends_on:
+      - coordinator
+    restart: always
+
+volumes:
+  db_data:
