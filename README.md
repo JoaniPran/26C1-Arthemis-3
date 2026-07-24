@@ -44,9 +44,64 @@ cargo run -p worker <nombre_a_asignar>
 cargo run -p worker <nombre_a_asignar> <ip_a_conectarse>
 ```
 
-### Docker: workers
+### Docker-Compose
 
-Para crear una imagen Docker del worker:
+para crear una imagen para poder levantar el cordinador y un solo worker
+
+```bash
+docker compose up --build -d
+```
+
+Para levantar el Coordinador + N Workers (ejemplo: 3 workers):
+
+```bash
+docker compose up --build -d --scale worker=3
+```
+
+si unicamente se desea correr el coordinador en un contendor aparte
+
+```bash
+docker compose up -d coordinator
+```
+
+Ver los logs únicamente del coordinador:
+
+```bash
+docker compose logs -f coordinator
+```
+- Reconstruir e iniciar solo el coordinador:
+```bash
+docker compose up --build -d coordinator
+```
+
+Para detener todo (conservando la base de datos):
+
+```bash
+docker compose stop
+```
+Para destruir los contenedores y limpiar volúmenes:
+
+```bash
+docker compose down -v
+```
+# Ver los logs de un worker ESPECÍFICO:
+
+- Primero, consultá los nombres de los contenedores activos:
+
+    ```bash
+    docker compose ps
+    ```
+
+- Luego, pedí los logs de la instancia específica:
+
+     ```bash
+    docker logs -f <nombre_del_contenedor>
+    ```
+
+
+## Correr Wokers 
+
+Para crear una imagen nueva en Docker del worker:
 
 ```bash
 docker build -t mi-worker .
