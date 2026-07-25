@@ -1,12 +1,32 @@
-use crate::app::UiState;
+use crate::app::{CoreState, UiState};
 use crate::ui::themes::Theme;
 use crate::utils::upload_workflow_file;
 use eframe::egui;
 use std::path::PathBuf;
+use std::sync::mpsc;
+use std::thread;
 
-pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
+pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState, core: &mut CoreState) {
     if !ui_state.show_import_modal {
         return;
+    }
+
+    if let Some(rx) = &ui_state.upload_rx {
+        if let Ok(result) = rx.try_recv() {
+            match result {
+                Ok(file_name) => {
+                    ui_state.expected_file = file_name.clone();
+                    ui_state.import_message = "Validando YAML...".to_string();
+                    ui_state.import_is_error = false;
+                }
+                Err(error_msg) => {
+                    ui_state.is_importing = false;
+                    ui_state.import_message = error_msg;
+                    ui_state.import_is_error = true;
+                }
+            }
+            ui_state.upload_rx = None;
+        }
     }
 
     egui::Area::new(egui::Id::new("modal_overlay"))
@@ -176,19 +196,20 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
             });
 
             if let Some(path) = pending_path {
-                if let Some(username) = &ui_state.session_username {
-                    match upload_workflow_file(&path, username, &ui_state.coordinator_ip) {
-                        Ok(file_name) => {
-                            ui_state.is_importing = true;
-                            ui_state.expected_file = file_name;
-                            ui_state.import_message = "Guardando...".to_string();
-                            ui_state.import_is_error = false;
-                        }
-                        Err(error_msg) => {
-                            ui_state.import_message = error_msg;
-                            ui_state.import_is_error = true;
-                        }
-                    }
+                if let Some(username) = ui_state.session_username.clone() {
+                    let coordinator_ip = ui_state.coordinator_ip.clone();
+
+                    ui_state.is_importing = true;
+                    ui_state.import_message = "Guardando en el servidor...".to_string();
+                    ui_state.import_is_error = false;
+
+                    let (tx, rx) = mpsc::channel();
+                    ui_state.upload_rx = Some(rx);
+
+                    thread::spawn(move || {
+                        let result = upload_workflow_file(&path, &username, &coordinator_ip);
+                        let _ = tx.send(result);
+                    });
                 } else {
                     ui_state.import_message = "Error: Sesión no encontrada.".to_string();
                     ui_state.import_is_error = true;

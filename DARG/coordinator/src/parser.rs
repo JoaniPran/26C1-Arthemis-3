@@ -55,21 +55,30 @@ pub fn start_workflow_watcher(
                                     .is_some_and(|ext| ext == "yaml" || ext == "yml")
                                 {
                                     let path_str = file_path.to_str().unwrap().to_string();
+                                    let file_name = file_path
+                                        .file_name()
+                                        .and_then(|f| f.to_str())
+                                        .unwrap_or_default()
+                                        .to_string();
 
-                                    if let Ok(metadata) = std::fs::metadata(&file_path) {
-                                        let modified_time =
-                                            metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-                                        let last_processed_time = processed_files
-                                            .get(&path_str)
-                                            .copied()
-                                            .unwrap_or(SystemTime::UNIX_EPOCH);
+                                    let metadata = std::fs::metadata(&file_path);
+                                    let modified_time = metadata
+                                        .as_ref()
+                                        .map(|m| m.modified().unwrap_or(SystemTime::UNIX_EPOCH))
+                                        .unwrap_or(SystemTime::UNIX_EPOCH);
 
-                                        if modified_time > last_processed_time {
-                                            let db = database.lock().unwrap();
+                                    let last_processed_time = processed_files.get(&path_str).copied();
 
-                                            if let Ok(user_id) =
-                                                db.get_user_id_by_username(&username)
-                                            {
+                                    let is_new_or_modified = match last_processed_time {
+                                        None => true,
+                                        Some(last_time) => modified_time > last_time,
+                                    };
+
+                                    if is_new_or_modified {
+                                        let db = database.lock().unwrap();
+
+                                        match db.get_user_id_by_username(&username) {
+                                            Ok(user_id) => {
                                                 match load_from_yaml(&db, user_id, &path_str) {
                                                     Ok((workflow_id, file_name, display_name)) => {
                                                         println!(
@@ -96,12 +105,7 @@ pub fn start_workflow_watcher(
                                                             "Watcher Error al procesar {}: {}",
                                                             path_str, e
                                                         );
-                                                        if let Some(ui_tx_s) = &ui_tx
-                                                            && let Some(file_name_os) =
-                                                                file_path.file_name()
-                                                            && let Some(file_name) =
-                                                                file_name_os.to_str()
-                                                        {
+                                                        if let Some(ui_tx_s) = &ui_tx {
                                                             let _ = ui_tx_s.send(format!(
                                                                 "ERROR:{}:{}",
                                                                 file_name, e
@@ -113,6 +117,22 @@ pub fn start_workflow_watcher(
                                                         );
                                                     }
                                                 }
+                                            }
+                                            Err(e) => {
+                                                eprintln!(
+                                                    "Watcher Error: No se encontró el usuario '{}' en la BDD: {}",
+                                                    username, e
+                                                );
+                                                if let Some(ui_tx_s) = &ui_tx {
+                                                    let _ = ui_tx_s.send(format!(
+                                                        "ERROR:{}:Usuario '{}' no registrado en la BDD del Coordinador",
+                                                        file_name, username
+                                                    ));
+                                                }
+                                                processed_files.insert(
+                                                    path_str.clone(),
+                                                    modified_time,
+                                                );
                                             }
                                         }
                                     }

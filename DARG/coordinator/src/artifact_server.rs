@@ -1,21 +1,24 @@
+use crate::db::Database;
 use rouille::Response;
 use std::fs::{self, File};
 
 pub fn start_artifact_server(port: &str) {
     let addr = format!("0.0.0.0:{}", port);
     let artifacts_dir = "./artifacts";
-    let workflows_dir = "./workflows"; 
+    let workflows_dir = "./workflows";
 
     fs::create_dir_all(artifacts_dir).expect("Fallo al crear la carpeta de artefactos");
     fs::create_dir_all(workflows_dir).expect("Fallo al crear la carpeta de workflows");
 
-    println!("Servidor HTTP de Artefactos y Workflows escuchando en {}...", addr);
+    println!(
+        "Servidor HTTP de Artefactos y Workflows escuchando en {}...",
+        addr
+    );
 
     rouille::start_server(addr, move |request| {
         let url = request.url();
 
         if request.method() == "POST" && url.starts_with("/upload_workflow/") {
-            // La URL esperada es: /upload_workflow/{username}/{filename}
             let path_suffix = url.replace("/upload_workflow/", "");
             let filepath = format!("{}/{}", workflows_dir, path_suffix);
 
@@ -46,6 +49,24 @@ pub fn start_artifact_server(port: &str) {
                     Response::text("Error al guardar en disco").with_status_code(500)
                 }
             };
+        }
+
+        if request.method() == "GET" && url.starts_with("/tasks/") {
+            let suffix = url.replace("/tasks/", "");
+            let parts: Vec<&str> = suffix.splitn(2, '/').collect();
+
+            if parts.len() == 2
+                && let Ok(user_id) = parts[0].parse::<i32>()
+            {
+                let file_name = parts[1];
+                if let Ok(db) = Database::new("arthemis.db") {
+                    if let Ok(tasks) = db.get_tasks_for_ui(user_id, file_name) {
+                        // Devuelve la tupla (id, name, status, logs) directo como JSON
+                        return Response::json(&tasks);
+                    }
+                }
+            }
+            return Response::text("Error al obtener tareas").with_status_code(500);
         }
 
         if request.method() == "GET" && url.starts_with("/download/") {
