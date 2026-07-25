@@ -67,7 +67,8 @@ pub fn start_workflow_watcher(
                                         .map(|m| m.modified().unwrap_or(SystemTime::UNIX_EPOCH))
                                         .unwrap_or(SystemTime::UNIX_EPOCH);
 
-                                    let last_processed_time = processed_files.get(&path_str).copied();
+                                    let last_processed_time =
+                                        processed_files.get(&path_str).copied();
 
                                     let is_new_or_modified = match last_processed_time {
                                         None => true,
@@ -129,10 +130,8 @@ pub fn start_workflow_watcher(
                                                         file_name, username
                                                     ));
                                                 }
-                                                processed_files.insert(
-                                                    path_str.clone(),
-                                                    modified_time,
-                                                );
+                                                processed_files
+                                                    .insert(path_str.clone(), modified_time);
                                             }
                                         }
                                     }

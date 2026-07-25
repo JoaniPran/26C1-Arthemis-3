@@ -300,8 +300,6 @@ impl eframe::App for ArthemisApp {
         if !self.ui.is_maximized {
             self.ui.is_maximized = true;
         }
-
-        // --- 4. DIBUJAR VISTAS DE EGUI ---
         if self.ui.current_view == AppView::Login {
             ui::login::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
         } else {

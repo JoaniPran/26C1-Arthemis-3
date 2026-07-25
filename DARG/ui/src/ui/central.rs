@@ -48,7 +48,6 @@ pub fn draw(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
                                         ui.add_space(5.0);
-                                        
                                         let has_started = !core_state.current_tasks.is_empty()
                                             && core_state.current_tasks.iter().any(|t| t.status != TaskStatus::Sleeping);
 
@@ -114,7 +113,7 @@ pub fn draw(
                                         } else {
                                             let _ = action_response.on_hover_text("Pipeline en ejecución. Espere a que termine o falle.");
                                             if core_state.workflow_execution_state == WorkflowExecutionState::Running {
-                                                ctx.request_repaint(); 
+                                            ctx.request_repaint();
                                             }
                                         }
                                     },
