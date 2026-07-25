@@ -141,40 +141,54 @@ impl eframe::App for ArthemisApp {
                         self.ui.connected_workers = parsed;
                     }
                 } else if msg.starts_with("LOADED:") {
-                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 {
-                        let file_name = parts[1].to_string();
-                        let display_name = parts[2].to_string();
+                    // Expect: "LOADED:username:file_name:display_name"
+                    let parts: Vec<&str> = msg.splitn(4, ':').collect();
+                    if parts.len() == 4 {
+                        let owner_username = parts[1];
+                        let file_name = parts[2].to_string();
+                        let display_name = parts[3].to_string();
 
-                        if self.ui.is_importing && self.ui.expected_file == file_name {
-                            self.ui.is_importing = false;
-                            self.ui.import_message =
-                                format!("Pipeline '{}' cargado y validado", file_name);
-                            self.ui.import_is_error = false;
-                        }
+                        // 💡 FILTRO: Solo procesamos si coincide con el usuario en sesión
+                        if let Some(session_user) = &self.ui.session_username {
+                            if session_user == owner_username {
+                                if self.ui.is_importing && self.ui.expected_file == file_name {
+                                    self.ui.is_importing = false;
+                                    self.ui.import_message =
+                                        format!("Pipeline '{}' cargado y validado", file_name);
+                                    self.ui.import_is_error = false;
+                                }
 
-                        if let Some(existing) = self
-                            .core
-                            .workflows
-                            .iter_mut()
-                            .find(|(f, _)| f == &file_name)
-                        {
-                            existing.1 = display_name;
-                        } else {
-                            self.core.workflows.push((file_name.clone(), display_name));
+                                if let Some(existing) = self
+                                    .core
+                                    .workflows
+                                    .iter_mut()
+                                    .find(|(f, _)| f == &file_name)
+                                {
+                                    existing.1 = display_name;
+                                } else {
+                                    self.core.workflows.push((file_name.clone(), display_name));
+                                }
+                            }
                         }
                     }
                 } else if msg.starts_with("ERROR:") {
-                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 {
-                        let file_name = parts[1];
-                        let error_reason = parts[2];
+                    // Expect: "ERROR:username:file_name:error_reason"
+                    let parts: Vec<&str> = msg.splitn(4, ':').collect();
+                    if parts.len() == 4 {
+                        let owner_username = parts[1];
+                        let file_name = parts[2];
+                        let error_reason = parts[3];
 
-                        if self.ui.is_importing && self.ui.expected_file == file_name {
-                            self.ui.is_importing = false;
-                            self.ui.import_message =
-                                format!("Error de validación: {}", error_reason);
-                            self.ui.import_is_error = true;
+                        if let Some(session_user) = &self.ui.session_username {
+                            if session_user == owner_username
+                                && self.ui.is_importing
+                                && self.ui.expected_file == file_name
+                            {
+                                self.ui.is_importing = false;
+                                self.ui.import_message =
+                                    format!("Error de validación: {}", error_reason);
+                                self.ui.import_is_error = true;
+                            }
                         }
                     }
                 } else if msg.starts_with("LOG:") {

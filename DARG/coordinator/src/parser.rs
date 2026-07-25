@@ -89,8 +89,8 @@ pub fn start_workflow_watcher(
 
                                                         if let Some(ui_tx_s) = &ui_tx {
                                                             let _ = ui_tx_s.send(format!(
-                                                                "LOADED:{}:{}",
-                                                                file_name, display_name
+                                                                "LOADED:{}:{}:{}",
+                                                                username, file_name, display_name
                                                             ));
                                                         }
                                                         processed_files.insert(
