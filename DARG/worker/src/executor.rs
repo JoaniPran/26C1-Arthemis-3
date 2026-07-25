@@ -35,8 +35,11 @@ impl TaskExecutor {
                 &format!("[SISTEMA] Descargando {}...", artifact),
             );
 
+            // -k: la conexión viaja cifrada por TLS igual, pero no se valida la
+            // identidad del certificado (la IP del coordinador puede variar entre
+            // despliegues y el cert autofirmado no tiene esa IP como SAN).
             let curl_cmd = format!(
-                "curl -s -O http://{}:8081/download/{}",
+                "curl -s -k -O https://{}:8081/download/{}",
                 coordinator_ip, artifact
             );
             let _ = Command::new("sh")
@@ -126,7 +129,7 @@ impl TaskExecutor {
             );
 
             let upload_cmd = format!(
-                "curl -s -X POST --data-binary @{} http://{}:8081/upload/{}",
+                "curl -s -k -X POST --data-binary @{} https://{}:8081/upload/{}",
                 upload_name, coordinator_ip, upload_name
             );
             let _ = Command::new("sh")

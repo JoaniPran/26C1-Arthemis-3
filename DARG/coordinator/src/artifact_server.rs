@@ -7,48 +7,61 @@ pub fn start_artifact_server(port: &str) {
 
     fs::create_dir_all(artifacts_dir).expect("Fallo al crear la carpeta de artefactos");
 
-    println!("Servidor HTTP de Artefactos escuchando en {}...", addr);
+    let certificate =
+        fs::read("coordinator/certs/coordinator.pem").expect("No se pudo leer el certificado TLS");
+    let private_key = fs::read("coordinator/certs/coordinator.key")
+        .expect("No se pudo leer la clave privada TLS");
 
-    rouille::start_server(addr, move |request| {
-        let url = request.url();
+    println!("Servidor HTTPS de Artefactos escuchando en {}...", addr);
 
-        if request.method() == "GET" && url.starts_with("/download/") {
-            let filename = url.replace("/download/", "");
-            let filepath = format!("{}/{}", artifacts_dir, filename);
+    let server = rouille::Server::new_ssl(
+        addr,
+        move |request| {
+            let url = request.url();
 
-            return match File::open(&filepath) {
-                Ok(file) => Response::from_file("application/zip", file),
-                Err(_) => Response::text("Archivo no encontrado").with_status_code(404),
-            };
-        }
+            if request.method() == "GET" && url.starts_with("/download/") {
+                let filename = url.replace("/download/", "");
+                let filepath = format!("{}/{}", artifacts_dir, filename);
 
-        if request.method() == "POST" && url.starts_with("/upload/") {
-            let filename = url.replace("/upload/", "");
-            let filepath = format!("{}/{}", artifacts_dir, filename);
+                return match File::open(&filepath) {
+                    Ok(file) => Response::from_file("application/zip", file),
+                    Err(_) => Response::text("Archivo no encontrado").with_status_code(404),
+                };
+            }
 
-            let mut file = match File::create(&filepath) {
-                Ok(f) => f,
-                Err(e) => {
-                    eprintln!("Error al crear archivo {}: {}", filepath, e);
-                    return Response::text("Error interno del servidor").with_status_code(500);
-                }
-            };
+            if request.method() == "POST" && url.starts_with("/upload/") {
+                let filename = url.replace("/upload/", "");
+                let filepath = format!("{}/{}", artifacts_dir, filename);
 
-            let mut body = request
-                .data()
-                .expect("Fallo al leer el cuerpo del request HTTP");
-            return match std::io::copy(&mut body, &mut file) {
-                Ok(_) => {
-                    println!("Artefacto guardado exitosamente: {}", filename);
-                    Response::text("Subida exitosa").with_status_code(200)
-                }
-                Err(e) => {
-                    eprintln!("Error al escribir archivo {}: {}", filepath, e);
-                    Response::text("Error al guardar en disco").with_status_code(500)
-                }
-            };
-        }
+                let mut file = match File::create(&filepath) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        eprintln!("Error al crear archivo {}: {}", filepath, e);
+                        return Response::text("Error interno del servidor").with_status_code(500);
+                    }
+                };
 
-        Response::text("Ruta HTTP no válida").with_status_code(404)
-    });
+                let mut body = request
+                    .data()
+                    .expect("Fallo al leer el cuerpo del request HTTP");
+                return match std::io::copy(&mut body, &mut file) {
+                    Ok(_) => {
+                        println!("Artefacto guardado exitosamente: {}", filename);
+                        Response::text("Subida exitosa").with_status_code(200)
+                    }
+                    Err(e) => {
+                        eprintln!("Error al escribir archivo {}: {}", filepath, e);
+                        Response::text("Error al guardar en disco").with_status_code(500)
+                    }
+                };
+            }
+
+            Response::text("Ruta HTTP no válida").with_status_code(404)
+        },
+        certificate,
+        private_key,
+    )
+    .expect("No se pudo iniciar el servidor HTTPS de artefactos");
+
+    server.run();
 }
