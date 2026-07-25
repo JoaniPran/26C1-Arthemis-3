@@ -13,7 +13,6 @@ pub fn start_event_server(port: &str) -> EventSender {
     let clients_clone = clients.clone();
     let addr = format!("0.0.0.0:{}", port);
 
-    // Hilo 1: Acepta nuevas conexiones de la UI
     thread::spawn(move || {
         let listener =
             TcpListener::bind(&addr).expect("No se pudo bindear el puerto de eventos UI");
