@@ -45,6 +45,7 @@ pub struct UiState {
     pub login_error: String,
     pub session_user_id: Option<i32>,
     pub session_username: Option<String>,
+    pub coordinator_ip: String,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -106,6 +107,7 @@ impl Default for ArthemisApp {
                 login_error: String::new(),
                 session_user_id: None,
                 session_username: None,
+                coordinator_ip: "127.0.0.1".to_string(),
             },
             core: CoreState {
                 workflows: vec![],

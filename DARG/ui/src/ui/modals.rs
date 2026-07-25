@@ -1,6 +1,6 @@
 use crate::app::UiState;
 use crate::ui::themes::Theme;
-use crate::utils::copy_workflow_file;
+use crate::utils::upload_workflow_file;
 use eframe::egui;
 use std::path::PathBuf;
 
@@ -177,7 +177,7 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
 
             if let Some(path) = pending_path {
                 if let Some(username) = &ui_state.session_username {
-                    match copy_workflow_file(&path, username) {
+                    match upload_workflow_file(&path, username, &ui_state.coordinator_ip) {
                         Ok(file_name) => {
                             ui_state.is_importing = true;
                             ui_state.expected_file = file_name;
