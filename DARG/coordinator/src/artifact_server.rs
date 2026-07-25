@@ -2,7 +2,34 @@ use crate::db::Database;
 use rouille::Response;
 use std::fs::{self, File};
 
-pub fn start_artifact_server(port: &str) {
+use rouille::input::json_input;
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
+
+#[derive(Deserialize)]
+struct AuthRequest {
+    username: String,
+    password: String,
+}
+
+#[derive(Serialize)]
+struct AuthResponse {
+    user_id: i32,
+    username: String,
+}
+
+#[derive(Deserialize)]
+struct StartTaskRequest {
+    task_id: i32,
+}
+
+#[derive(Deserialize)]
+struct ResetWorkflowRequest {
+    user_id: i32,
+    workflow_name: String,
+}
+
+pub fn start_artifact_server(port: &str, database: Arc<Mutex<Database>>) {
     let addr = format!("0.0.0.0:{}", port);
     let artifacts_dir = "./artifacts";
     let workflows_dir = "./workflows";
@@ -51,6 +78,32 @@ pub fn start_artifact_server(port: &str) {
             };
         }
 
+        if request.method() == "POST" && request.url() == "/start_task" {
+            let req_data: StartTaskRequest = match json_input(request) {
+                Ok(data) => data,
+                Err(_) => return Response::text("JSON inválido").with_status_code(400),
+            };
+
+            let db = database.lock().unwrap();
+            return match db.set_task_pending(req_data.task_id) {
+                Ok(_) => Response::text("Tarea iniciada").with_status_code(200),
+                Err(e) => Response::text(e).with_status_code(400),
+            };
+        }
+
+        if request.method() == "POST" && request.url() == "/reset_workflow" {
+            let req_data: ResetWorkflowRequest = match json_input(request) {
+                Ok(data) => data,
+                Err(_) => return Response::text("JSON inválido").with_status_code(400),
+            };
+
+            let db = database.lock().unwrap();
+            return match db.reset_workflow(req_data.user_id, req_data.workflow_name) {
+                Ok(_) => Response::text("Workflow reiniciado").with_status_code(200),
+                Err(_) => return Response::text("JSON inválido").with_status_code(400),
+            };
+        }
+
         if request.method() == "GET" && url.starts_with("/tasks/") {
             let suffix = url.replace("/tasks/", "");
             let parts: Vec<&str> = suffix.splitn(2, '/').collect();
@@ -76,6 +129,38 @@ pub fn start_artifact_server(port: &str) {
             return match File::open(&filepath) {
                 Ok(file) => Response::from_file("application/zip", file),
                 Err(_) => Response::text("Archivo no encontrado").with_status_code(404),
+            };
+        }
+
+        if request.method() == "POST" && request.url() == "/register" {
+            let req_data: AuthRequest = match json_input(request) {
+                Ok(data) => data,
+                Err(_) => return Response::text("JSON inválido").with_status_code(400),
+            };
+
+            let db = database.lock().unwrap();
+            return match db.register_user(&req_data.username, &req_data.password) {
+                Ok(user_id) => Response::json(&AuthResponse {
+                    user_id,
+                    username: req_data.username,
+                }),
+                Err(_) => Response::text("El usuario ya existe").with_status_code(400),
+            };
+        }
+
+        if request.method() == "POST" && request.url() == "/login" {
+            let req_data: AuthRequest = match json_input(request) {
+                Ok(data) => data,
+                Err(_) => return Response::text("JSON inválido").with_status_code(400),
+            };
+
+            let db = database.lock().unwrap();
+            return match db.authenticate_user(&req_data.username, &req_data.password) {
+                Ok(user_id) => Response::json(&AuthResponse {
+                    user_id,
+                    username: req_data.username,
+                }),
+                Err(_) => Response::text("Credenciales incorrectas").with_status_code(401),
             };
         }
 

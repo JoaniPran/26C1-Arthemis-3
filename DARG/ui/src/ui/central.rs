@@ -8,7 +8,7 @@ pub fn draw(
     ctx: &egui::Context,
     ui_state: &UiState,
     core_state: &mut CoreState,
-    db: Option<&Database>,
+    _db: Option<&Database>, // Mantenemos el parámetro por firma, pero la UI ya no lo usa directamente
 ) {
     egui::CentralPanel::default().show(ctx, |ui| match ui_state.current_view {
         AppView::Workflows => {
@@ -91,18 +91,39 @@ pub fn draw(
                                                 core_state.workflow_execution_state = WorkflowExecutionState::Running;
                                                 core_state.workflow_running = true;
 
-                                                if let Some(database) = db {
-                                                    if let Some(user_id) = ui_state.session_user_id {
-                                                        if has_finished {
-                                                            let _ = database.reset_workflow(user_id, wf.clone());
-                                                        } else {
-                                                            for task in &core_state.current_tasks {
-                                                                let _ = database.set_task_pending(task.id);
-                                                            }
+                                                // -------------------------------------------------------------
+                                                // PETICIONES HTTP AL COORDINADOR EN LUGAR DE BDD LOCAL
+                                                // -------------------------------------------------------------
+                                                if let Some(user_id) = ui_state.session_user_id {
+                                                    let client = reqwest::blocking::Client::new();
+
+                                                    if has_finished {
+                                                        // RESET: Si ya había terminado, reiniciamos el workflow vía HTTP
+                                                        let url = format!(
+                                                            "http://{}:8081/reset_workflow",
+                                                            ui_state.coordinator_ip
+                                                        );
+                                                        let body = serde_json::json!({
+                                                            "user_id": user_id,
+                                                            "workflow_name": wf
+                                                        });
+                                                        let _ = client.post(&url).json(&body).send();
+                                                    } else {
+                                                        // START: Pasamos las tareas a PENDING vía HTTP
+                                                        for task in &core_state.current_tasks {
+                                                            let url = format!(
+                                                                "http://{}:8081/start_task",
+                                                                ui_state.coordinator_ip
+                                                            );
+                                                            let body = serde_json::json!({
+                                                                "task_id": task.id
+                                                            });
+                                                            let _ = client.post(&url).json(&body).send();
                                                         }
                                                     }
                                                 }
 
+                                                // Actualización visual local en la UI
                                                 for task in &mut core_state.current_tasks {
                                                     task.status = TaskStatus::Pending;
                                                     if has_finished {
@@ -113,7 +134,7 @@ pub fn draw(
                                         } else {
                                             let _ = action_response.on_hover_text("Pipeline en ejecución. Espere a que termine o falle.");
                                             if core_state.workflow_execution_state == WorkflowExecutionState::Running {
-                                            ctx.request_repaint();
+                                                ctx.request_repaint();
                                             }
                                         }
                                     },

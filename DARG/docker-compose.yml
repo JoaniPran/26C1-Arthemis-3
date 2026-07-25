@@ -18,7 +18,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./arthemis.db:/app/arthemis.db
       - ./workflows:/app/workflows
     restart: unless-stopped
 

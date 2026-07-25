@@ -7,7 +7,7 @@ pub fn draw(
     ctx: &egui::Context,
     ui_state: &mut UiState,
     core_state: &mut CoreState,
-    db: Option<&Database>,
+    _db: Option<&Database>, // Mantenemos el parámetro por compatibilidad de firma, pero ya no se usa
 ) {
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.centered_and_justified(|ui| {
@@ -69,33 +69,47 @@ pub fn draw(
                                     .rounding(6.0);
 
                             if ui.add_sized([120.0, 35.0], btn_login).clicked() {
-                                if ui_state.login_username_input.trim().is_empty()
-                                    || ui_state.login_password_input.trim().is_empty()
-                                {
+                                let username = ui_state.login_username_input.trim().to_string();
+                                let password = ui_state.login_password_input.trim().to_string();
+
+                                if username.is_empty() || password.is_empty() {
                                     ui_state.login_error =
                                         "Usuario y contraseña requeridos".to_string();
-                                } else if let Some(database) = db {
-                                    match database.authenticate_user(
-                                        &ui_state.login_username_input,
-                                        &ui_state.login_password_input,
-                                    ) {
-                                        Ok(user_id) => {
-                                            ui_state.session_user_id = Some(user_id);
-                                            ui_state.session_username =
-                                                Some(ui_state.login_username_input.clone());
-                                            ui_state.login_error.clear();
+                                } else {
+                                    let url =
+                                        format!("http://{}:8081/login", ui_state.coordinator_ip);
+                                    let body = serde_json::json!({
+                                        "username": username,
+                                        "password": password
+                                    });
 
-                                            if let Ok(wfs) =
-                                                database.get_workflows_for_user(user_id)
-                                            {
-                                                core_state.workflows = wfs;
+                                    let client = reqwest::blocking::Client::new();
+                                    match client.post(&url).json(&body).send() {
+                                        Ok(response) if response.status().is_success() => {
+                                            if let Ok(data) = response.json::<serde_json::Value>() {
+                                                let user_id =
+                                                    data["user_id"].as_i64().unwrap_or(0) as i32;
+
+                                                ui_state.session_user_id = Some(user_id);
+                                                ui_state.session_username = Some(username);
+                                                ui_state.login_error.clear();
+
+                                                ui_state.current_view = AppView::Workflows;
                                             }
-
-                                            ui_state.current_view = AppView::Workflows;
                                         }
-                                        Err(_) => {
+                                        Ok(response) if response.status().as_u16() == 401 => {
                                             ui_state.login_error =
                                                 "Credenciales incorrectas".to_string();
+                                        }
+                                        Ok(_) => {
+                                            ui_state.login_error =
+                                                "Error del servidor al iniciar sesión".to_string();
+                                        }
+                                        Err(e) => {
+                                            ui_state.login_error = format!(
+                                                "No se pudo conectar al Coordinador ({}:8081): {}",
+                                                ui_state.coordinator_ip, e
+                                            );
                                         }
                                     }
                                 }
@@ -107,32 +121,48 @@ pub fn draw(
                             .fill(Theme::HOVER_ROW)
                             .rounding(6.0);
 
+                            // -------------------------------------------------------------
+                            // BOTÓN: REGISTRARSE (HTTP POST /register)
+                            // -------------------------------------------------------------
                             if ui.add_sized([120.0, 35.0], btn_register).clicked() {
-                                if ui_state.login_username_input.trim().is_empty()
-                                    || ui_state.login_password_input.trim().is_empty()
-                                {
+                                let username = ui_state.login_username_input.trim().to_string();
+                                let password = ui_state.login_password_input.trim().to_string();
+
+                                if username.is_empty() || password.is_empty() {
                                     ui_state.login_error =
                                         "Usuario y contraseña requeridos".to_string();
-                                } else if let Some(database) = db {
-                                    match database.register_user(
-                                        &ui_state.login_username_input,
-                                        &ui_state.login_password_input,
-                                    ) {
-                                        Ok(user_id) => {
-                                            ui_state.session_user_id = Some(user_id);
-                                            ui_state.session_username =
-                                                Some(ui_state.login_username_input.clone());
-                                            ui_state.login_error.clear();
-                                            core_state.workflows.clear();
-                                            let workspace_path = std::path::Path::new("workflows")
-                                                .join(&ui_state.login_username_input);
-                                            let _ = std::fs::create_dir_all(workspace_path);
+                                } else {
+                                    let url =
+                                        format!("http://{}:8081/register", ui_state.coordinator_ip);
+                                    let body = serde_json::json!({
+                                        "username": username,
+                                        "password": password
+                                    });
 
-                                            ui_state.current_view = AppView::Workflows;
+                                    let client = reqwest::blocking::Client::new();
+                                    match client.post(&url).json(&body).send() {
+                                        Ok(response) if response.status().is_success() => {
+                                            if let Ok(data) = response.json::<serde_json::Value>() {
+                                                let user_id =
+                                                    data["user_id"].as_i64().unwrap_or(0) as i32;
+
+                                                ui_state.session_user_id = Some(user_id);
+                                                ui_state.session_username = Some(username);
+                                                ui_state.login_error.clear();
+                                                core_state.workflows.clear();
+
+                                                ui_state.current_view = AppView::Workflows;
+                                            }
                                         }
-                                        Err(_) => {
+                                        Ok(_) => {
                                             ui_state.login_error =
                                                 "El usuario ya existe o hubo un error".to_string();
+                                        }
+                                        Err(e) => {
+                                            ui_state.login_error = format!(
+                                                "No se pudo conectar al Coordinador ({}:8081): {}",
+                                                ui_state.coordinator_ip, e
+                                            );
                                         }
                                     }
                                 }
