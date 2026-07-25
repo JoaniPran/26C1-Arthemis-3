@@ -27,4 +27,5 @@ pub struct TaskRecord {
     pub name: String,
     pub command: String,
     pub produces: Option<String>,
+    pub username: String,
 }

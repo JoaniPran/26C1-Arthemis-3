@@ -96,7 +96,7 @@ fn start_dispatcher(
                             }
 
                             let artifact_to_upload = if task.produces.is_some() {
-                                Some(format!("artefacto_tarea_{}.zip", task.id))
+                                Some(format!("{}/artefacto_tarea_{}.zip", task.username, task.id))
                             } else {
                                 None
                             };

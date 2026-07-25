@@ -93,11 +93,13 @@ pub fn draw(
                                                 core_state.workflow_running = true;
 
                                                 if let Some(database) = db {
-                                                    if has_finished {
-                                                        let _ = database.reset_workflow(wf.clone());
-                                                    } else {
-                                                        for task in &core_state.current_tasks {
-                                                            let _ = database.set_task_pending(task.id);
+                                                    if let Some(user_id) = ui_state.session_user_id {
+                                                        if has_finished {
+                                                            let _ = database.reset_workflow(user_id, wf.clone());
+                                                        } else {
+                                                            for task in &core_state.current_tasks {
+                                                                let _ = database.set_task_pending(task.id);
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -199,5 +201,7 @@ pub fn draw(
                 });
             });
         }
+
+        AppView::Login => {}
     });
 }

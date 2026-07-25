@@ -24,6 +24,7 @@ pub struct Task {
 
 #[derive(PartialEq)]
 pub enum AppView {
+    Login,
     Projects,
     Workflows,
     Settings,
@@ -38,6 +39,12 @@ pub struct UiState {
     pub is_importing: bool,
     pub expected_file: String,
     pub connected_workers: usize,
+
+    pub login_username_input: String,
+    pub login_password_input: String,
+    pub login_error: String,
+    pub session_user_id: Option<i32>,
+    pub session_username: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -75,15 +82,7 @@ impl ArthemisApp {
 
         let db_instance = Database::new("arthemis.db").ok();
 
-        let mut initial_workflows = vec![];
-        if let Some(db) = &db_instance
-            && let Ok(wfs) = db.get_all_workflows()
-        {
-            initial_workflows = wfs;
-        }
-
         let mut app = Self::default();
-        app.core.workflows = initial_workflows;
         app.db = db_instance;
         app
     }
@@ -94,13 +93,19 @@ impl Default for ArthemisApp {
         Self {
             ui: UiState {
                 is_maximized: false,
-                current_view: AppView::Workflows,
+                current_view: AppView::Login,
                 show_import_modal: false,
                 import_message: String::new(),
                 import_is_error: false,
                 is_importing: false,
                 expected_file: String::new(),
                 connected_workers: 0,
+
+                login_username_input: String::new(),
+                login_password_input: String::new(),
+                login_error: String::new(),
+                session_user_id: None,
+                session_username: None,
             },
             core: CoreState {
                 workflows: vec![],
@@ -213,29 +218,31 @@ impl eframe::App for ArthemisApp {
 
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
-                if let Some(db) = &self.db
-                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf)
-                {
-                    let mut ui_tasks = Vec::new();
-                    for (id, name, status_str, logs) in backend_tasks {
-                        let status_normalized = status_str.to_ascii_uppercase();
-                        let status = match status_normalized.as_str() {
-                            "RUNNING" => TaskStatus::Running,
-                            "SUCCESS" => TaskStatus::Success,
-                            "FAILED" => TaskStatus::Failed,
-                            _ => TaskStatus::Sleeping,
-                        };
-                        ui_tasks.push(Task {
-                            id,
-                            name,
-                            status,
-                            logs,
-                        });
+                if let Some(user_id) = self.ui.session_user_id {
+                    if let Some(db) = &self.db
+                        && let Ok(backend_tasks) = db.get_tasks_for_ui(user_id, wf)
+                    {
+                        let mut ui_tasks = Vec::new();
+                        for (id, name, status_str, logs) in backend_tasks {
+                            let status_normalized = status_str.to_ascii_uppercase();
+                            let status = match status_normalized.as_str() {
+                                "RUNNING" => TaskStatus::Running,
+                                "SUCCESS" => TaskStatus::Success,
+                                "FAILED" => TaskStatus::Failed,
+                                _ => TaskStatus::Sleeping,
+                            };
+                            ui_tasks.push(Task {
+                                id,
+                                name,
+                                status,
+                                logs,
+                            });
+                        }
+
+                        self.core.current_tasks = ui_tasks;
+
+                        self.core.loaded_workflow = Some(wf.clone());
                     }
-
-                    self.core.current_tasks = ui_tasks;
-
-                    self.core.loaded_workflow = Some(wf.clone());
                 }
             } else {
                 self.core.current_tasks.clear();
@@ -264,10 +271,13 @@ impl eframe::App for ArthemisApp {
             self.ui.is_maximized = true;
         }
 
-        ui::sidebar::draw(ctx, &mut self.ui);
-        ui::explorer::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
-        ui::central::draw(ctx, &self.ui, &mut self.core, self.db.as_ref());
-
-        ui::modals::draw_import_modal(ctx, &mut self.ui);
+        if self.ui.current_view == AppView::Login {
+            ui::login::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
+        } else {
+            ui::sidebar::draw(ctx, &mut self.ui, &mut self.core);
+            ui::explorer::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
+            ui::central::draw(ctx, &self.ui, &mut self.core, self.db.as_ref());
+            ui::modals::draw_import_modal(ctx, &mut self.ui);
+        }
     }
 }
