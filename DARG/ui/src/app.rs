@@ -72,7 +72,7 @@ pub struct ArthemisApp {
 }
 
 impl ArthemisApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, coordinator_ip: String) -> Self {
         setup_custom_fonts(&cc.egui_ctx);
 
         let mut visuals = egui::Visuals::dark();
@@ -86,6 +86,7 @@ impl ArthemisApp {
         let db_instance = Database::new("arthemis.db").ok();
 
         let mut app = Self::default();
+        app.ui.coordinator_ip = coordinator_ip;
         app.db = db_instance;
         app
     }
@@ -128,7 +129,6 @@ impl Default for ArthemisApp {
 
 impl eframe::App for ArthemisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // --- 1. PROCESAR EVENTOS TCP EN TIEMPO REAL ---
         if let Some(rx) = &self.backend_rx {
             let mut received_msg = false;
             while let Ok(msg) = rx.try_recv() {
@@ -227,7 +227,6 @@ impl eframe::App for ArthemisApp {
             }
         }
 
-        // --- 2. CARGAR TAREAS Y LOGS (RED/HTTP DE DESACOPLAMIENTO + FALLBACK BDD LOCAL) ---
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
                 if let Some(user_id) = self.ui.session_user_id {

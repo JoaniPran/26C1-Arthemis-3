@@ -46,6 +46,8 @@ fn main() -> eframe::Result<()> {
         }
     });
 
+    let app_ip = coordinator_ip.clone();
+
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_maximized(true)
@@ -58,7 +60,7 @@ fn main() -> eframe::Result<()> {
         "Arthemis UI",
         options,
         Box::new(|cc| {
-            let mut app = ArthemisApp::new(cc);
+            let mut app = ArthemisApp::new(cc, app_ip);
             app.backend_rx = Some(rx);
             Box::new(app)
         }),
