@@ -19,6 +19,7 @@ services:
       - .env
     volumes:
       - db_data:/app/data
+      - ./workflows:/app/workflows
     restart: unless-stopped
 
   worker:
