@@ -2,7 +2,12 @@ use crate::db::{Database, TaskRecord};
 use rusqlite::{Result, params};
 
 impl Database {
-    pub fn insert_workflow(&self, user_id: i32, file_name: &str, display_name: &str) -> Result<i32> {
+    pub fn insert_workflow(
+        &self,
+        user_id: i32,
+        file_name: &str,
+        display_name: &str,
+    ) -> Result<i32> {
         self.conn.execute(
             "INSERT INTO workflows (user_id, file_name, display_name) VALUES (?1, ?2, ?3)",
             params![user_id, file_name, display_name],
@@ -183,12 +188,12 @@ impl Database {
     }
 
     pub fn get_workflows_for_user(&self, user_id: i32) -> Result<Vec<(String, String)>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT file_name, display_name FROM workflows WHERE user_id = ?1 ORDER BY id ASC")?;
-        
+        let mut stmt = self.conn.prepare(
+            "SELECT file_name, display_name FROM workflows WHERE user_id = ?1 ORDER BY id ASC",
+        )?;
+
         let rows = stmt.query_map([user_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
-        
+
         let mut workflows = Vec::new();
         for row in rows.flatten() {
             workflows.push(row);
@@ -239,16 +244,14 @@ impl Database {
     }
 
     pub fn get_artifacts_to_download(&self, task_id: i32) -> Result<Vec<String>> {
-        let mut stmt = self
-            .conn
-            .prepare(
-                "SELECT c.consumed_task_id, u.username 
+        let mut stmt = self.conn.prepare(
+            "SELECT c.consumed_task_id, u.username 
                  FROM task_consumes c
                  JOIN tasks t ON c.consumed_task_id = t.id
                  JOIN workflows w ON t.workflow_id = w.id
                  JOIN users u ON w.user_id = u.id
-                 WHERE c.task_id = ?1"
-            )?;
+                 WHERE c.task_id = ?1",
+        )?;
 
         let rows = stmt.query_map([task_id], |row| {
             let id: i32 = row.get(0)?;
@@ -385,7 +388,8 @@ mod test {
         db.complete_task(t1).unwrap();
         db.insert_log(t1, "Log de ejecución 1").unwrap();
 
-        db.reset_workflow(user_id, "pipeline_reinicio.yaml".into()).unwrap();
+        db.reset_workflow(user_id, "pipeline_reinicio.yaml".into())
+            .unwrap();
 
         let ready_tasks = db.get_ready_tasks().unwrap();
         assert_eq!(ready_tasks.len(), 1);

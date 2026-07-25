@@ -71,14 +71,15 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                     .frame(false)
                     .rounding(egui::Rounding::same(6.0));
 
-                    let response = ui.add_sized([46.0, 46.0], btn_logout)
+                    let response = ui
+                        .add_sized([46.0, 46.0], btn_logout)
                         .on_hover_cursor(egui::CursorIcon::PointingHand)
                         .on_hover_text("Cerrar Sesión");
 
                     if response.clicked() {
                         ui_state.session_user_id = None;
                         ui_state.session_username = None;
-                        ui_state.login_password_input.clear(); 
+                        ui_state.login_password_input.clear();
                         ui_state.current_view = AppView::Login;
 
                         core_state.workflows.clear();

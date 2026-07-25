@@ -143,7 +143,9 @@ pub fn draw(
 
                     if let Some(file_name) = delete_workflow {
                         if let Some(username) = &ui_state.session_username {
-                            let workflow_path = std::path::Path::new("workflows").join(username).join(&file_name);
+                            let workflow_path = std::path::Path::new("workflows")
+                                .join(username)
+                                .join(&file_name);
                             let _ = fs::remove_file(&workflow_path);
                         }
 

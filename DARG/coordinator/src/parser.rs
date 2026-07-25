@@ -42,19 +42,23 @@ pub fn start_workflow_watcher(
             if let Ok(entries) = std::fs::read_dir(&folder_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    
+
                     if path.is_dir() {
                         let username = path.file_name().unwrap().to_str().unwrap().to_string();
 
                         if let Ok(user_entries) = std::fs::read_dir(&path) {
                             for user_entry in user_entries.flatten() {
                                 let file_path = user_entry.path();
-                                
-                                if file_path.extension().is_some_and(|ext| ext == "yaml" || ext == "yml") {
+
+                                if file_path
+                                    .extension()
+                                    .is_some_and(|ext| ext == "yaml" || ext == "yml")
+                                {
                                     let path_str = file_path.to_str().unwrap().to_string();
-                                    
+
                                     if let Ok(metadata) = std::fs::metadata(&file_path) {
-                                        let modified_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+                                        let modified_time =
+                                            metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
                                         let last_processed_time = processed_files
                                             .get(&path_str)
                                             .copied()
@@ -62,8 +66,10 @@ pub fn start_workflow_watcher(
 
                                         if modified_time > last_processed_time {
                                             let db = database.lock().unwrap();
-                                            
-                                            if let Ok(user_id) = db.get_user_id_by_username(&username) {
+
+                                            if let Ok(user_id) =
+                                                db.get_user_id_by_username(&username)
+                                            {
                                                 match load_from_yaml(&db, user_id, &path_str) {
                                                     Ok((workflow_id, file_name, display_name)) => {
                                                         println!(
@@ -77,18 +83,34 @@ pub fn start_workflow_watcher(
                                                                 file_name, display_name
                                                             ));
                                                         }
-                                                        processed_files.insert(path_str.clone(), modified_time);
-                                                        let _ = tx.send(LogEvent::StartWorkflow(display_name));
+                                                        processed_files.insert(
+                                                            path_str.clone(),
+                                                            modified_time,
+                                                        );
+                                                        let _ = tx.send(LogEvent::StartWorkflow(
+                                                            display_name,
+                                                        ));
                                                     }
                                                     Err(e) => {
-                                                        eprintln!("Watcher Error al procesar {}: {}", path_str, e);
+                                                        eprintln!(
+                                                            "Watcher Error al procesar {}: {}",
+                                                            path_str, e
+                                                        );
                                                         if let Some(ui_tx_s) = &ui_tx
-                                                            && let Some(file_name_os) = file_path.file_name()
-                                                            && let Some(file_name) = file_name_os.to_str()
+                                                            && let Some(file_name_os) =
+                                                                file_path.file_name()
+                                                            && let Some(file_name) =
+                                                                file_name_os.to_str()
                                                         {
-                                                            let _ = ui_tx_s.send(format!("ERROR:{}:{}", file_name, e));
+                                                            let _ = ui_tx_s.send(format!(
+                                                                "ERROR:{}:{}",
+                                                                file_name, e
+                                                            ));
                                                         }
-                                                        processed_files.insert(path_str.clone(), modified_time);
+                                                        processed_files.insert(
+                                                            path_str.clone(),
+                                                            modified_time,
+                                                        );
                                                     }
                                                 }
                                             }
@@ -104,7 +126,11 @@ pub fn start_workflow_watcher(
     });
 }
 
-fn load_from_yaml(db: &Database, user_id: i32, file_path: &str) -> Result<(i32, String, String), Box<dyn Error>> {
+fn load_from_yaml(
+    db: &Database,
+    user_id: i32,
+    file_path: &str,
+) -> Result<(i32, String, String), Box<dyn Error>> {
     let content = fs::read_to_string(file_path)?;
     let workflow: WorkflowYaml = serde_yaml::from_str(&content)?;
     let file_name = Path::new(file_path)

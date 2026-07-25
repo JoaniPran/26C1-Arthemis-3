@@ -41,7 +41,7 @@ pub fn start_artifact_server(port: &str) {
             let mut body = request
                 .data()
                 .expect("Fallo al leer el cuerpo del request HTTP");
-            
+
             return match std::io::copy(&mut body, &mut file) {
                 Ok(_) => {
                     println!("Artefacto guardado exitosamente: {}", filename);

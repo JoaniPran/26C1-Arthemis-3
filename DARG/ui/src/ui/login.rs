@@ -36,7 +36,7 @@ pub fn draw(
                             [250.0, 30.0],
                             egui::TextEdit::singleline(&mut ui_state.login_username_input),
                         );
-                        
+
                         ui.add_space(15.0);
 
                         ui.label(
@@ -63,15 +63,17 @@ pub fn draw(
                         }
 
                         ui.horizontal_centered(|ui| {
-                            let btn_login = egui::Button::new(
-                                egui::RichText::new("Iniciar Sesión").strong(),
-                            )
-                            .fill(Theme::ACCENT_BLUE)
-                            .rounding(6.0);
+                            let btn_login =
+                                egui::Button::new(egui::RichText::new("Iniciar Sesión").strong())
+                                    .fill(Theme::ACCENT_BLUE)
+                                    .rounding(6.0);
 
                             if ui.add_sized([120.0, 35.0], btn_login).clicked() {
-                                if ui_state.login_username_input.trim().is_empty() || ui_state.login_password_input.trim().is_empty() {
-                                    ui_state.login_error = "Usuario y contraseña requeridos".to_string();
+                                if ui_state.login_username_input.trim().is_empty()
+                                    || ui_state.login_password_input.trim().is_empty()
+                                {
+                                    ui_state.login_error =
+                                        "Usuario y contraseña requeridos".to_string();
                                 } else if let Some(database) = db {
                                     match database.authenticate_user(
                                         &ui_state.login_username_input,
@@ -79,17 +81,21 @@ pub fn draw(
                                     ) {
                                         Ok(user_id) => {
                                             ui_state.session_user_id = Some(user_id);
-                                            ui_state.session_username = Some(ui_state.login_username_input.clone());
+                                            ui_state.session_username =
+                                                Some(ui_state.login_username_input.clone());
                                             ui_state.login_error.clear();
-                                            
-                                            if let Ok(wfs) = database.get_workflows_for_user(user_id) {
+
+                                            if let Ok(wfs) =
+                                                database.get_workflows_for_user(user_id)
+                                            {
                                                 core_state.workflows = wfs;
                                             }
-                                            
+
                                             ui_state.current_view = AppView::Workflows;
                                         }
                                         Err(_) => {
-                                            ui_state.login_error = "Credenciales incorrectas".to_string();
+                                            ui_state.login_error =
+                                                "Credenciales incorrectas".to_string();
                                         }
                                     }
                                 }
@@ -102,8 +108,11 @@ pub fn draw(
                             .rounding(6.0);
 
                             if ui.add_sized([120.0, 35.0], btn_register).clicked() {
-                                if ui_state.login_username_input.trim().is_empty() || ui_state.login_password_input.trim().is_empty() {
-                                    ui_state.login_error = "Usuario y contraseña requeridos".to_string();
+                                if ui_state.login_username_input.trim().is_empty()
+                                    || ui_state.login_password_input.trim().is_empty()
+                                {
+                                    ui_state.login_error =
+                                        "Usuario y contraseña requeridos".to_string();
                                 } else if let Some(database) = db {
                                     match database.register_user(
                                         &ui_state.login_username_input,
@@ -111,10 +120,12 @@ pub fn draw(
                                     ) {
                                         Ok(user_id) => {
                                             ui_state.session_user_id = Some(user_id);
-                                            ui_state.session_username = Some(ui_state.login_username_input.clone());
+                                            ui_state.session_username =
+                                                Some(ui_state.login_username_input.clone());
                                             ui_state.login_error.clear();
                                             core_state.workflows.clear();
-                                            let workspace_path = std::path::Path::new("workflows").join(&ui_state.login_username_input);
+                                            let workspace_path = std::path::Path::new("workflows")
+                                                .join(&ui_state.login_username_input);
                                             let _ = std::fs::create_dir_all(workspace_path);
 
                                             ui_state.current_view = AppView::Workflows;
