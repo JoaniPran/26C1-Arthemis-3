@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 
-pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState, core: &mut CoreState) {
+pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
     if !ui_state.show_import_modal {
         return;
     }

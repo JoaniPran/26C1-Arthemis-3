@@ -8,7 +8,6 @@ pub fn draw(
     ctx: &egui::Context,
     ui_state: &UiState,
     core_state: &mut CoreState,
-    _db: Option<&Database>, // Mantenemos el parámetro por firma, pero la UI ya no lo usa directamente
 ) {
     egui::CentralPanel::default().show(ctx, |ui| match ui_state.current_view {
         AppView::Workflows => {

@@ -304,8 +304,8 @@ impl eframe::App for ArthemisApp {
         } else {
             ui::sidebar::draw(ctx, &mut self.ui, &mut self.core);
             ui::explorer::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
-            ui::central::draw(ctx, &self.ui, &mut self.core, self.db.as_ref());
-            ui::modals::draw_import_modal(ctx, &mut self.ui, &mut self.core);
+            ui::central::draw(ctx, &self.ui, &mut self.core);
+            ui::modals::draw_import_modal(ctx, &mut self.ui);
         }
     }
 }
