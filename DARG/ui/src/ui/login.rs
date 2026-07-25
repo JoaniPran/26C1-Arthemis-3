@@ -7,7 +7,7 @@ pub fn draw(
     ctx: &egui::Context,
     ui_state: &mut UiState,
     core_state: &mut CoreState,
-    _db: Option<&Database>, // Mantenemos el parámetro por compatibilidad de firma, pero ya no se usa
+    _db: Option<&Database>,
 ) {
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.centered_and_justified(|ui| {
@@ -91,8 +91,25 @@ pub fn draw(
                                                     data["user_id"].as_i64().unwrap_or(0) as i32;
 
                                                 ui_state.session_user_id = Some(user_id);
-                                                ui_state.session_username = Some(username);
+                                                ui_state.session_username = Some(username.clone());
                                                 ui_state.login_error.clear();
+
+                                                core_state.workflows.clear();
+                                                core_state.selected_workflow = None;
+                                                core_state.loaded_workflow = None;
+                                                core_state.current_tasks.clear();
+
+                                                let wf_url = format!(
+                                                    "http://{}:8081/workflows/{}",
+                                                    ui_state.coordinator_ip, user_id
+                                                );
+                                                if let Ok(wf_res) = client.get(&wf_url).send() {
+                                                    if let Ok(user_wfs) =
+                                                        wf_res.json::<Vec<(String, String)>>()
+                                                    {
+                                                        core_state.workflows = user_wfs;
+                                                    }
+                                                }
 
                                                 ui_state.current_view = AppView::Workflows;
                                             }
@@ -121,9 +138,6 @@ pub fn draw(
                             .fill(Theme::HOVER_ROW)
                             .rounding(6.0);
 
-                            // -------------------------------------------------------------
-                            // BOTÓN: REGISTRARSE (HTTP POST /register)
-                            // -------------------------------------------------------------
                             if ui.add_sized([120.0, 35.0], btn_register).clicked() {
                                 let username = ui_state.login_username_input.trim().to_string();
                                 let password = ui_state.login_password_input.trim().to_string();
@@ -147,9 +161,25 @@ pub fn draw(
                                                     data["user_id"].as_i64().unwrap_or(0) as i32;
 
                                                 ui_state.session_user_id = Some(user_id);
-                                                ui_state.session_username = Some(username);
+                                                ui_state.session_username = Some(username.clone());
                                                 ui_state.login_error.clear();
+
                                                 core_state.workflows.clear();
+                                                core_state.selected_workflow = None;
+                                                core_state.loaded_workflow = None;
+                                                core_state.current_tasks.clear();
+
+                                                let wf_url = format!(
+                                                    "http://{}:8081/workflows/{}",
+                                                    ui_state.coordinator_ip, user_id
+                                                );
+                                                if let Ok(wf_res) = client.get(&wf_url).send() {
+                                                    if let Ok(user_wfs) =
+                                                        wf_res.json::<Vec<(String, String)>>()
+                                                    {
+                                                        core_state.workflows = user_wfs;
+                                                    }
+                                                }
 
                                                 ui_state.current_view = AppView::Workflows;
                                             }

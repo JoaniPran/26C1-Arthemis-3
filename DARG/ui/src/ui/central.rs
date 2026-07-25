@@ -3,11 +3,7 @@ use crate::ui::components::task_row;
 use crate::ui::themes::Theme;
 use eframe::egui;
 
-pub fn draw(
-    ctx: &egui::Context,
-    ui_state: &UiState,
-    core_state: &mut CoreState,
-) {
+pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState) {
     egui::CentralPanel::default().show(ctx, |ui| match ui_state.current_view {
         AppView::Workflows => {
             if let Some(wf) = &core_state.selected_workflow {
