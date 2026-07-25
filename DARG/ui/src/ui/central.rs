@@ -1,7 +1,6 @@
 use crate::app::{AppView, CoreState, TaskStatus, UiState, WorkflowExecutionState};
 use crate::ui::components::task_row;
 use crate::ui::themes::Theme;
-use coordinator::db::Database;
 use eframe::egui;
 
 pub fn draw(
