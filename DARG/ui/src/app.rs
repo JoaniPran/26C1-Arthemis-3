@@ -145,7 +145,6 @@ impl eframe::App for ArthemisApp {
                         let file_name = parts[2].to_string();
                         let display_name = parts[3].to_string();
 
-                        // FILTRO: Solo procesamos si coincide con el usuario en sesión
                         if let Some(session_user) = &self.ui.session_username
                             && session_user == owner_username
                         {
@@ -255,7 +254,6 @@ impl eframe::App for ArthemisApp {
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
                 if let Some(user_id) = self.ui.session_user_id {
-                    // Intento 1: Consultar via API HTTP al Coordinador remoto
                     let url = format!(
                         "https://{}:8081/tasks/{}/{}",
                         self.ui.coordinator_ip, user_id, wf
@@ -268,7 +266,6 @@ impl eframe::App for ArthemisApp {
                     {
                         Some(backend_tasks)
                     } else if let Some(db) = &self.db {
-                        // Intento 2: Fallback a BDD local
                         db.get_tasks_for_ui(user_id, wf).ok()
                     } else {
                         None
@@ -303,7 +300,6 @@ impl eframe::App for ArthemisApp {
             }
         }
 
-        // --- 3. REVISAR SI TERMINÓ LA EJECUCIÓN ---
         if self.core.workflow_execution_state == WorkflowExecutionState::Running {
             let has_running = self
                 .core

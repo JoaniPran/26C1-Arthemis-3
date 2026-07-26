@@ -85,9 +85,6 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState)
                                                 core_state.workflow_execution_state = WorkflowExecutionState::Running;
                                                 core_state.workflow_running = true;
 
-                                                // -------------------------------------------------------------
-                                                // PETICIONES HTTP AL COORDINADOR EN LUGAR DE BDD LOCAL
-                                                // -------------------------------------------------------------
                                                 if let Some(user_id) = ui_state.session_user_id {
                                                     let client = crate::utils::insecure_client();
 
@@ -117,7 +114,6 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState)
                                                     }
                                                 }
 
-                                                // Actualización visual local en la UI
                                                 for task in &mut core_state.current_tasks {
                                                     task.status = TaskStatus::Pending;
                                                     if has_finished {
