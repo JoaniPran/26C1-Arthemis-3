@@ -33,7 +33,7 @@ pub fn draw(
                                         "Usuario y contraseña requeridos".to_string();
                                 } else {
                                     let url =
-                                        format!("https://{}:8081/login", ui_state.coordinator_ip);
+                                        format!("https://{}:8081/register", ui_state.coordinator_ip);
                                     let body = serde_json::json!({
                                         "username": username,
                                         "password": password
@@ -99,7 +99,7 @@ pub fn draw(
                                         "Usuario y contraseña requeridos".to_string();
                                 } else {
                                     let url = format!(
-                                        "https://{}:8081/register",
+                                        "https://{}:8081/login",
                                         ui_state.coordinator_ip
                                     );
                                     let body = serde_json::json!({
