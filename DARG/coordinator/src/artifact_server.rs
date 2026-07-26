@@ -58,24 +58,14 @@ pub fn start_artifact_server(
         move |request| {
             let url = request.url();
 
-if request.method() == "GET" && url == "/workers_count" {
-    // Prefer the DB count when available (from main), fallback to coordinator state (from feat/worker-count)
-    let connected = match database.lock().unwrap().get_connected_worker_count() {
-        Ok(count) => count as usize,
-        Err(e) => {
-            eprintln!("Error al consultar workers conectados: {}. Falling back to coordinator state.", e);
-            coordinator_state.worker_count()
-        }
-    };
+            if request.method() == "GET" && url == "/workers_count" {
+                let connected = coordinator_state.worker_count();
+                let available = coordinator_state.available_worker_count();
 
-    let available = coordinator_state.available_worker_count();
-
-    return Response::json(&json!({
-        "connected": connected,
-        "available": available,
-    }));
-}
-
+                return Response::json(&json!({
+                    "connected": connected,
+                    "available": available,
+                }));
             }
 
             if request.method() == "POST" && url.starts_with("/upload_workflow/") {

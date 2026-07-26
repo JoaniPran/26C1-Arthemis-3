@@ -242,12 +242,10 @@ impl eframe::App for ArthemisApp {
         if self.ui.last_workers_refresh.elapsed() >= Duration::from_secs(2) {
             let url = format!("https://{}:8081/workers_count", self.ui.coordinator_ip);
 
-if let Ok(response) = crate::utils::insecure_client().get(&url).send()
-    && let Ok(body) = response.text()
-    && let Ok(body_json) = serde_json::from_str::<serde_json::Value>(&body)
-    && let Some(connected) = body_json["connected"].as_u64()
-    && let Some(available) = body_json["available"].as_u64()
-
+            if let Ok(response) = crate::utils::insecure_client().get(&url).send()
+                && let Ok(body_json) = response.json::<serde_json::Value>()
+                && let Some(connected) = body_json["connected"].as_u64()
+                && let Some(available) = body_json["available"].as_u64()
             {
                 self.ui.connected_workers = connected as usize;
                 self.ui.available_workers = available as usize;
