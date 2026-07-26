@@ -25,8 +25,10 @@ A continuación se detallan los pasos para compilar y ejecutar el programa.
 - El comando para ejecutar la interfaz gráfica (UI) es:
 
     ```bash
-    cargo run -p ui
+    cargo run -p ui <ip_coordinador>
     ```
+
+Nota: si no es asignada una ip, se optara automaticamente por conectarse 127.0.0.1 (Localhost).
 
 -   Sin la UI, ejecutar el coordinador con:
 
@@ -46,7 +48,7 @@ Nota: el coordinador siempre escucha en todas las interfaces (0.0.0.0) por defec
 
 ## Docker-Compose
 
-- para crear una imagen para poder levantar el cordinador y un solo worker
+- para crear una imagen y levantar el cordinador con un solo worker
 
     ```bash
     docker compose up --build -d
