@@ -22,6 +22,9 @@ pub fn start_server(port: &str) {
     db_instance
         .reset_all_running_tasks()
         .expect("Error al limpiar tareas");
+    db_instance
+        .reset_all_workers_disconnected()
+        .expect("Error al limpiar workers conectados");
 
     let database = Arc::new(Mutex::new(db_instance));
     let state = CoordinatorState::new();

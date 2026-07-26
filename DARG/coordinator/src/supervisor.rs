@@ -15,13 +15,17 @@ pub fn start_watchdog(
             thread::sleep(Duration::from_secs(5));
 
             let dead_workers = state.remove_dead_workers(15);
-            let had_dead_workers = !dead_workers.is_empty();
 
             for (worker_id, task_id_out) in dead_workers {
                 println!(
                     "SUPERVISOR: El worker {} no responde (timeout). Expulsando...",
                     worker_id
                 );
+
+                {
+                    let db = database.lock().unwrap();
+                    let _ = db.set_worker_disconnected(&worker_id);
+                }
 
                 if let Some(task_id) = task_id_out {
                     println!(
@@ -42,10 +46,6 @@ pub fn start_watchdog(
                         }
                     }
                 }
-            }
-
-            if had_dead_workers && let Some(tx) = &ui_tx {
-                let _ = tx.send(format!("WORKERS:{}", state.worker_count()));
             }
         }
     });
