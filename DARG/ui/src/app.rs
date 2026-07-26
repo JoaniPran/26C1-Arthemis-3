@@ -40,6 +40,7 @@ pub struct UiState {
     pub is_importing: bool,
     pub expected_file: String,
     pub connected_workers: usize,
+    pub available_workers: usize,
 
     pub login_username_input: String,
     pub login_password_input: String,
@@ -106,6 +107,7 @@ impl Default for ArthemisApp {
                 is_importing: false,
                 expected_file: String::new(),
                 connected_workers: 0,
+                available_workers: 0,
 
                 login_username_input: String::new(),
                 login_password_input: String::new(),
@@ -241,10 +243,12 @@ impl eframe::App for ArthemisApp {
             let url = format!("http://{}:8081/workers_count", self.ui.coordinator_ip);
 
             if let Ok(response) = reqwest::blocking::get(&url)
-                && let Ok(body) = response.text()
-                && let Ok(count) = body.trim().parse::<usize>()
+                && let Ok(body) = response.json::<serde_json::Value>()
+                && let Some(connected) = body["connected"].as_u64()
+                && let Some(available) = body["available"].as_u64()
             {
-                self.ui.connected_workers = count;
+                self.ui.connected_workers = connected as usize;
+                self.ui.available_workers = available as usize;
             }
 
             self.ui.last_workers_refresh = Instant::now();

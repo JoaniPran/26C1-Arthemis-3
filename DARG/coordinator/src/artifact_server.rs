@@ -1,5 +1,7 @@
 use crate::db::Database;
+use crate::state::CoordinatorState;
 use rouille::Response;
+use serde_json::json;
 use std::fs::{self, File};
 
 use rouille::input::json_input;
@@ -29,7 +31,11 @@ struct ResetWorkflowRequest {
     workflow_name: String,
 }
 
-pub fn start_artifact_server(port: &str, database: Arc<Mutex<Database>>) {
+pub fn start_artifact_server(
+    port: &str,
+    database: Arc<Mutex<Database>>,
+    coordinator_state: CoordinatorState,
+) {
     let addr = format!("0.0.0.0:{}", port);
     let artifacts_dir = "./artifacts";
     let workflows_dir = "./workflows";
@@ -46,14 +52,12 @@ pub fn start_artifact_server(port: &str, database: Arc<Mutex<Database>>) {
         let url = request.url();
 
         if request.method() == "GET" && url == "/workers_count" {
-            let db = database.lock().unwrap();
-            return match db.get_connected_worker_count() {
-                Ok(count) => Response::text(count.to_string()).with_status_code(200),
-                Err(e) => {
-                    eprintln!("Error al consultar workers conectados: {}", e);
-                    Response::text("0").with_status_code(500)
-                }
-            };
+            let connected = coordinator_state.worker_count();
+            let available = coordinator_state.available_worker_count();
+            return Response::json(&json!({
+                "connected": connected,
+                "available": available,
+            }));
         }
 
         if request.method() == "POST" && url.starts_with("/upload_workflow/") {

@@ -31,6 +31,11 @@ impl CoordinatorState {
         self.workers.lock().unwrap().len()
     }
 
+    pub fn available_worker_count(&self) -> usize {
+        let map = self.workers.lock().unwrap();
+        map.values().filter(|info| info.assigned_task_id.is_none()).count()
+    }
+
     pub fn add_worker(&self, id: String, stream: TcpStream) {
         let mut map = self.workers.lock().unwrap();
         map.insert(
