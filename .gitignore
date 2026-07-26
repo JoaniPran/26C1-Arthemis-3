@@ -23,3 +23,6 @@ arthemis.db
 
 # Artefactos subidos/descargados por el servidor de artefactos
 artifacts/
+
+# Certificado TLS autofirmado (se genera con openssl, no se versiona)
+DARG/coordinator/certs/
