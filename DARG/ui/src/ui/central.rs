@@ -37,6 +37,15 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState)
                                     .size(13.0)
                                     .color(Theme::TEXT_MUTED),
                                 );
+                                ui.add_space(12.0);
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "Disponibles: {}",
+                                        ui_state.available_workers
+                                    ))
+                                    .size(13.0)
+                                    .color(Theme::TEXT_MUTED),
+                                );
 
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
