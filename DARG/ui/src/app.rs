@@ -238,9 +238,9 @@ impl eframe::App for ArthemisApp {
         }
 
         if self.ui.last_workers_refresh.elapsed() >= Duration::from_secs(2) {
-            let url = format!("http://{}:8081/workers_count", self.ui.coordinator_ip);
+            let url = format!("https://{}:8081/workers_count", self.ui.coordinator_ip);
 
-            if let Ok(response) = reqwest::blocking::get(&url)
+            if let Ok(response) = crate::utils::insecure_client().get(&url).send()
                 && let Ok(body) = response.text()
                 && let Ok(count) = body.trim().parse::<usize>()
             {
@@ -257,11 +257,12 @@ impl eframe::App for ArthemisApp {
                 if let Some(user_id) = self.ui.session_user_id {
                     // Intento 1: Consultar via API HTTP al Coordinador remoto
                     let url = format!(
-                        "http://{}:8081/tasks/{}/{}",
+                        "https://{}:8081/tasks/{}/{}",
                         self.ui.coordinator_ip, user_id, wf
                     );
 
-                    let fetched_tasks = if let Ok(response) = reqwest::blocking::get(&url)
+                    let fetched_tasks = if let Ok(response) =
+                        crate::utils::insecure_client().get(&url).send()
                         && let Ok(backend_tasks) =
                             response.json::<Vec<(i32, String, String, Vec<String>)>>()
                     {

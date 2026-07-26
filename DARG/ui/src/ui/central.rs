@@ -89,12 +89,12 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState)
                                                 // PETICIONES HTTP AL COORDINADOR EN LUGAR DE BDD LOCAL
                                                 // -------------------------------------------------------------
                                                 if let Some(user_id) = ui_state.session_user_id {
-                                                    let client = reqwest::blocking::Client::new();
+                                                    let client = crate::utils::insecure_client();
 
                                                     if has_finished {
                                                         // RESET: Si ya había terminado, reiniciamos el workflow vía HTTP
                                                         let url = format!(
-                                                            "http://{}:8081/reset_workflow",
+                                                            "https://{}:8081/reset_workflow",
                                                             ui_state.coordinator_ip
                                                         );
                                                         let body = serde_json::json!({
@@ -106,7 +106,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState)
                                                         // START: Pasamos las tareas a PENDING vía HTTP
                                                         for task in &core_state.current_tasks {
                                                             let url = format!(
-                                                                "http://{}:8081/start_task",
+                                                                "https://{}:8081/start_task",
                                                                 ui_state.coordinator_ip
                                                             );
                                                             let body = serde_json::json!({

@@ -77,13 +77,13 @@ pub fn draw(
                                         "Usuario y contraseña requeridos".to_string();
                                 } else {
                                     let url =
-                                        format!("http://{}:8081/login", ui_state.coordinator_ip);
+                                        format!("https://{}:8081/login", ui_state.coordinator_ip);
                                     let body = serde_json::json!({
                                         "username": username,
                                         "password": password
                                     });
 
-                                    let client = reqwest::blocking::Client::new();
+                                    let client = crate::utils::insecure_client();
                                     match client.post(&url).json(&body).send() {
                                         Ok(response) if response.status().is_success() => {
                                             if let Ok(data) = response.json::<serde_json::Value>() {
@@ -100,7 +100,7 @@ pub fn draw(
                                                 core_state.current_tasks.clear();
 
                                                 let wf_url = format!(
-                                                    "http://{}:8081/workflows/{}",
+                                                    "https://{}:8081/workflows/{}",
                                                     ui_state.coordinator_ip, user_id
                                                 );
                                                 if let Ok(wf_res) = client.get(&wf_url).send()
@@ -145,14 +145,16 @@ pub fn draw(
                                     ui_state.login_error =
                                         "Usuario y contraseña requeridos".to_string();
                                 } else {
-                                    let url =
-                                        format!("http://{}:8081/register", ui_state.coordinator_ip);
+                                    let url = format!(
+                                        "https://{}:8081/register",
+                                        ui_state.coordinator_ip
+                                    );
                                     let body = serde_json::json!({
                                         "username": username,
                                         "password": password
                                     });
 
-                                    let client = reqwest::blocking::Client::new();
+                                    let client = crate::utils::insecure_client();
                                     match client.post(&url).json(&body).send() {
                                         Ok(response) if response.status().is_success() => {
                                             if let Ok(data) = response.json::<serde_json::Value>() {
@@ -169,7 +171,7 @@ pub fn draw(
                                                 core_state.current_tasks.clear();
 
                                                 let wf_url = format!(
-                                                    "http://{}:8081/workflows/{}",
+                                                    "https://{}:8081/workflows/{}",
                                                     ui_state.coordinator_ip, user_id
                                                 );
                                                 if let Ok(wf_res) = client.get(&wf_url).send()

@@ -1,6 +1,19 @@
 use std::fs;
 use std::path::PathBuf;
 
+/// Cliente HTTP para hablarle al Coordinador por HTTPS.
+///
+/// El Coordinador usa un certificado autofirmado (no hay CA pública en este
+/// sistema cerrado) y la UI puede apuntar a cualquier IP de coordinador, así que
+/// no se valida la identidad del certificado (equivalente a `curl -k`). La
+/// conexión igual viaja cifrada por TLS.
+pub fn insecure_client() -> reqwest::blocking::Client {
+    reqwest::blocking::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("No se pudo construir el cliente HTTP")
+}
+
 pub fn upload_workflow_file(
     source_path: &PathBuf,
     username: &str,
@@ -27,11 +40,11 @@ pub fn upload_workflow_file(
         fs::read(source_path).map_err(|e| format!("Error al leer el archivo local: {}", e))?;
 
     let url = format!(
-        "http://{}:8081/upload_workflow/{}/{}",
+        "https://{}:8081/upload_workflow/{}/{}",
         coordinator_ip, username, file_name
     );
 
-    let client = reqwest::blocking::Client::new();
+    let client = insecure_client();
 
     // Tipo explícito reqwest::blocking::Response para evitar error de inferencia
     let res: Result<reqwest::blocking::Response, reqwest::Error> =

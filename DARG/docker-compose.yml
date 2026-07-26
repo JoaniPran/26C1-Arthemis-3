@@ -19,6 +19,7 @@ services:
       - .env
     volumes:
       - ./workflows:/app/workflows
+      - ./coordinator/certs:/usr/src/coordinator/certs:ro
     restart: unless-stopped
 
   worker:
