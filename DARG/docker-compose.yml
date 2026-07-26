@@ -17,8 +17,6 @@ services:
     command: ./target/release/coordinator
     env_file:
       - .env
-    volumes:
-      - ./workflows:/app/workflows
     restart: unless-stopped
 
   worker:
