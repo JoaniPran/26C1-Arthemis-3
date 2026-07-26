@@ -103,6 +103,18 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                             .size(9.0)
                             .color(Theme::TEXT_MUTED),
                     );
+                    ui.add_space(4.0);
+                    ui.label(
+                        egui::RichText::new(ui_state.available_workers.to_string())
+                            .size(16.0)
+                            .strong()
+                            .color(Theme::TEXT_WHITE),
+                    );
+                    ui.label(
+                        egui::RichText::new("workers disponibles")
+                            .size(9.0)
+                            .color(Theme::TEXT_MUTED),
+                    );
                 });
             });
 

@@ -37,9 +37,10 @@ pub fn start_server(port: &str) {
     monitor::start_global_log_monitor(log_rx);
 
     let db_clone = database.clone();
+    let state_clone = state.clone();
 
     thread::spawn(move || {
-        artifact_server::start_artifact_server("8081", db_clone.clone());
+        artifact_server::start_artifact_server("8081", db_clone.clone(), state_clone.clone());
     });
 
     let listener = TcpListener::bind(&addr).expect("No se pudo bindear el puerto.");

@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y \
     maven \
     unzip \
     zip \
+    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Instalamos Rust y Cargo actualizados mediante Rustup
