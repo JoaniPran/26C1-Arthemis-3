@@ -1,5 +1,6 @@
 pub mod artifact_server;
 pub mod db;
+pub mod event_server;
 pub mod handler;
 pub mod monitor;
 pub mod parser;

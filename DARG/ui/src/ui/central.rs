@@ -1,15 +1,9 @@
 use crate::app::{AppView, CoreState, TaskStatus, UiState, WorkflowExecutionState};
 use crate::ui::components::task_row;
 use crate::ui::themes::Theme;
-use coordinator::db::Database;
 use eframe::egui;
 
-pub fn draw(
-    ctx: &egui::Context,
-    ui_state: &UiState,
-    core_state: &mut CoreState,
-    db: Option<&Database>,
-) {
+pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState) {
     egui::CentralPanel::default().show(ctx, |ui| match ui_state.current_view {
         AppView::Workflows => {
             if let Some(wf) = &core_state.selected_workflow {
@@ -34,11 +28,20 @@ pub fn draw(
                                         .color(Theme::TEXT_WHITE),
                                 );
 
+                                ui.add_space(12.0);
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "Workers online: {}",
+                                        ui_state.connected_workers
+                                    ))
+                                    .size(13.0)
+                                    .color(Theme::TEXT_MUTED),
+                                );
+
                                 ui.with_layout(
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
                                         ui.add_space(5.0);
-                                        
                                         let has_started = !core_state.current_tasks.is_empty()
                                             && core_state.current_tasks.iter().any(|t| t.status != TaskStatus::Sleeping);
 
@@ -82,16 +85,39 @@ pub fn draw(
                                                 core_state.workflow_execution_state = WorkflowExecutionState::Running;
                                                 core_state.workflow_running = true;
 
-                                                if let Some(database) = db {
+                                                // -------------------------------------------------------------
+                                                // PETICIONES HTTP AL COORDINADOR EN LUGAR DE BDD LOCAL
+                                                // -------------------------------------------------------------
+                                                if let Some(user_id) = ui_state.session_user_id {
+                                                    let client = reqwest::blocking::Client::new();
+
                                                     if has_finished {
-                                                        let _ = database.reset_workflow(wf.clone());
+                                                        // RESET: Si ya había terminado, reiniciamos el workflow vía HTTP
+                                                        let url = format!(
+                                                            "http://{}:8081/reset_workflow",
+                                                            ui_state.coordinator_ip
+                                                        );
+                                                        let body = serde_json::json!({
+                                                            "user_id": user_id,
+                                                            "workflow_name": wf
+                                                        });
+                                                        let _ = client.post(&url).json(&body).send();
                                                     } else {
+                                                        // START: Pasamos las tareas a PENDING vía HTTP
                                                         for task in &core_state.current_tasks {
-                                                            let _ = database.set_task_pending(task.id);
+                                                            let url = format!(
+                                                                "http://{}:8081/start_task",
+                                                                ui_state.coordinator_ip
+                                                            );
+                                                            let body = serde_json::json!({
+                                                                "task_id": task.id
+                                                            });
+                                                            let _ = client.post(&url).json(&body).send();
                                                         }
                                                     }
                                                 }
 
+                                                // Actualización visual local en la UI
                                                 for task in &mut core_state.current_tasks {
                                                     task.status = TaskStatus::Pending;
                                                     if has_finished {
@@ -102,7 +128,7 @@ pub fn draw(
                                         } else {
                                             let _ = action_response.on_hover_text("Pipeline en ejecución. Espere a que termine o falle.");
                                             if core_state.workflow_execution_state == WorkflowExecutionState::Running {
-                                                ctx.request_repaint(); 
+                                                ctx.request_repaint();
                                             }
                                         }
                                     },
@@ -173,11 +199,23 @@ pub fn draw(
                     ui.heading("Configuración del Clúster");
                     ui.add_space(10.0);
                     ui.label(
+                        egui::RichText::new(format!(
+                            "Workers online: {}",
+                            ui_state.connected_workers
+                        ))
+                        .size(15.0)
+                        .strong()
+                        .color(Theme::TEXT_WHITE),
+                    );
+                    ui.add_space(6.0);
+                    ui.label(
                         egui::RichText::new("Aquí irán las opciones de los Workers y red.")
                             .color(Theme::TEXT_MUTED),
                     );
                 });
             });
         }
+
+        AppView::Login => {}
     });
 }

@@ -4,16 +4,49 @@ mod ui;
 mod utils;
 
 use app::ArthemisApp;
+use std::env;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::net::TcpStream;
 use std::sync::mpsc;
 use std::thread;
 
 fn main() -> eframe::Result<()> {
+    let args: Vec<String> = env::args().collect();
+    let coordinator_ip = args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| "127.0.0.1".to_string());
+    let coordinator_addr = format!("{}:8082", coordinator_ip);
+
     let (tx, rx) = mpsc::channel::<String>();
 
     thread::spawn(move || {
-        println!("Iniciando Coordinador Interno Arthemis...");
-        coordinator::server::start_server("8080", Some(tx));
+        println!(
+            "Conectando al Coordinador Arthemis ({}) ...",
+            coordinator_addr
+        );
+
+        match TcpStream::connect(&coordinator_addr) {
+            Ok(stream) => {
+                let reader = BufReader::new(stream);
+                for line in reader.lines() {
+                    if let Ok(msg) = line {
+                        if tx.send(msg).is_err() {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("No se pudo conectar a {}: {}", coordinator_addr, e);
+            }
+        }
     });
+
+    let app_ip = coordinator_ip.clone();
 
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
@@ -27,7 +60,7 @@ fn main() -> eframe::Result<()> {
         "Arthemis UI",
         options,
         Box::new(|cc| {
-            let mut app = ArthemisApp::new(cc);
+            let mut app = ArthemisApp::new(cc, app_ip);
             app.backend_rx = Some(rx);
             Box::new(app)
         }),

@@ -1,8 +1,8 @@
-use crate::app::{AppView, UiState};
+use crate::app::{AppView, CoreState, UiState, WorkflowExecutionState};
 use crate::ui::themes::Theme;
 use eframe::egui;
 
-pub fn draw(ctx: &egui::Context, ui_state: &mut UiState) {
+pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreState) {
     let frame = egui::Frame::none().fill(Theme::BG_SIDEBAR);
 
     egui::SidePanel::left("nav_panel")
@@ -58,6 +58,52 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState) {
 
                     ui.add_space(10.0);
                 }
+
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+                    ui.add_space(20.0);
+
+                    let icon_logout = "\u{200B}\u{f08b}\u{200B}";
+                    let btn_logout = egui::Button::new(
+                        egui::RichText::new(icon_logout)
+                            .size(22.0)
+                            .color(Theme::STATUS_FAILED),
+                    )
+                    .frame(false)
+                    .rounding(egui::Rounding::same(6.0));
+
+                    let response = ui
+                        .add_sized([46.0, 46.0], btn_logout)
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .on_hover_text("Cerrar Sesión");
+
+                    if response.clicked() {
+                        ui_state.session_user_id = None;
+                        ui_state.session_username = None;
+                        ui_state.login_password_input.clear();
+                        ui_state.current_view = AppView::Login;
+
+                        core_state.workflows.clear();
+                        core_state.selected_workflow = None;
+                        core_state.loaded_workflow = None;
+                        core_state.current_tasks.clear();
+                        core_state.workflow_running = false;
+                        core_state.workflow_execution_state = WorkflowExecutionState::Idle;
+                    }
+
+                    ui.add_space(15.0);
+
+                    ui.label(
+                        egui::RichText::new(ui_state.connected_workers.to_string())
+                            .size(18.0)
+                            .strong()
+                            .color(Theme::TEXT_WHITE),
+                    );
+                    ui.label(
+                        egui::RichText::new("workers conectados")
+                            .size(9.0)
+                            .color(Theme::TEXT_MUTED),
+                    );
+                });
             });
 
             let rect = ui.max_rect();

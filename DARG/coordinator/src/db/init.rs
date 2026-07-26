@@ -13,10 +13,19 @@ impl Database {
     fn create_table(&self) -> Result<()> {
         self.conn.execute_batch(
             "
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS workflows (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_name TEXT NOT NULL UNIQUE,
-                display_name TEXT NOT NULL
+                user_id INTEGER NOT NULL,
+                file_name TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                UNIQUE(user_id, file_name),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS tasks (

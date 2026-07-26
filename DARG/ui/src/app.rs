@@ -24,6 +24,7 @@ pub struct Task {
 
 #[derive(PartialEq)]
 pub enum AppView {
+    Login,
     Projects,
     Workflows,
     Settings,
@@ -37,6 +38,15 @@ pub struct UiState {
     pub import_is_error: bool,
     pub is_importing: bool,
     pub expected_file: String,
+    pub connected_workers: usize,
+
+    pub login_username_input: String,
+    pub login_password_input: String,
+    pub login_error: String,
+    pub session_user_id: Option<i32>,
+    pub session_username: Option<String>,
+    pub coordinator_ip: String,
+    pub upload_rx: Option<Receiver<Result<String, String>>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -44,6 +54,7 @@ pub enum WorkflowExecutionState {
     Idle,    // Nadie tocó nada, listo para dar Play
     Running, // Corriendo tareas, UI completamente bloqueada en modo Pausa
 }
+
 pub struct CoreState {
     pub workflows: Vec<(String, String)>,
     pub selected_workflow: Option<String>,
@@ -61,7 +72,7 @@ pub struct ArthemisApp {
 }
 
 impl ArthemisApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, coordinator_ip: String) -> Self {
         setup_custom_fonts(&cc.egui_ctx);
 
         let mut visuals = egui::Visuals::dark();
@@ -74,15 +85,8 @@ impl ArthemisApp {
 
         let db_instance = Database::new("arthemis.db").ok();
 
-        let mut initial_workflows = vec![];
-        if let Some(db) = &db_instance
-            && let Ok(wfs) = db.get_all_workflows()
-        {
-            initial_workflows = wfs;
-        }
-
         let mut app = Self::default();
-        app.core.workflows = initial_workflows;
+        app.ui.coordinator_ip = coordinator_ip;
         app.db = db_instance;
         app
     }
@@ -93,12 +97,21 @@ impl Default for ArthemisApp {
         Self {
             ui: UiState {
                 is_maximized: false,
-                current_view: AppView::Workflows,
+                current_view: AppView::Login,
                 show_import_modal: false,
                 import_message: String::new(),
                 import_is_error: false,
                 is_importing: false,
                 expected_file: String::new(),
+                connected_workers: 0,
+
+                login_username_input: String::new(),
+                login_password_input: String::new(),
+                login_error: String::new(),
+                session_user_id: None,
+                session_username: None,
+                upload_rx: None,
+                coordinator_ip: "127.0.0.1".to_string(),
             },
             core: CoreState {
                 workflows: vec![],
@@ -117,44 +130,63 @@ impl Default for ArthemisApp {
 impl eframe::App for ArthemisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(rx) = &self.backend_rx {
+            let mut received_msg = false;
             while let Ok(msg) = rx.try_recv() {
-                if msg.starts_with("LOADED:") {
-                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
-                    if parts.len() == 3 {
-                        let file_name = parts[1].to_string();
-                        let display_name = parts[2].to_string();
+                received_msg = true;
 
-                        if self.ui.is_importing && self.ui.expected_file == file_name {
-                            self.ui.is_importing = false;
-                            self.ui.import_message = format!("Pipeline '{}' guardado", file_name);
-                            self.ui.import_is_error = false;
-                        }
+                if msg.starts_with("WORKERS:") {
+                    if let Some(count) = msg.split(':').nth(1)
+                        && let Ok(parsed) = count.parse::<usize>()
+                    {
+                        self.ui.connected_workers = parsed;
+                    }
+                } else if msg.starts_with("LOADED:") {
+                    // Expect: "LOADED:username:file_name:display_name"
+                    let parts: Vec<&str> = msg.splitn(4, ':').collect();
+                    if parts.len() == 4 {
+                        let owner_username = parts[1];
+                        let file_name = parts[2].to_string();
+                        let display_name = parts[3].to_string();
 
-                        if let Some(existing) = self
-                            .core
-                            .workflows
-                            .iter_mut()
-                            .find(|(f, _)| f == &file_name)
+                        // FILTRO: Solo procesamos si coincide con el usuario en sesión
+                        if let Some(session_user) = &self.ui.session_username
+                            && session_user == owner_username
                         {
-                            existing.1 = display_name;
-                        } else {
-                            self.core.workflows.push((file_name.clone(), display_name));
-                        }
+                            if self.ui.is_importing && self.ui.expected_file == file_name {
+                                self.ui.is_importing = false;
+                                self.ui.import_message =
+                                    format!("Pipeline '{}' cargado y validado", file_name);
+                                self.ui.import_is_error = false;
+                            }
 
-                        if self.core.selected_workflow.as_ref() == Some(&file_name) {
-                            self.core.loaded_workflow = None;
+                            if let Some(existing) = self
+                                .core
+                                .workflows
+                                .iter_mut()
+                                .find(|(f, _)| f == &file_name)
+                            {
+                                existing.1 = display_name;
+                            } else {
+                                self.core.workflows.push((file_name.clone(), display_name));
+                            }
                         }
                     }
                 } else if msg.starts_with("ERROR:") {
-                    let parts: Vec<&str> = msg.splitn(3, ':').collect();
+                    // Expect: "ERROR:username:file_name:error_reason"
+                    let parts: Vec<&str> = msg.splitn(4, ':').collect();
+                    if parts.len() == 4 {
+                        let owner_username = parts[1];
+                        let file_name = parts[2];
+                        let error_reason = parts[3];
 
-                    if parts.len() == 3 {
-                        let file_name = parts[1];
-                        let error_reason = parts[2];
-
-                        if self.ui.is_importing && self.ui.expected_file == file_name {
+                        if let Some(session_user) = &self.ui.session_username
+                            && session_user == owner_username
+                            && self.ui.is_importing
+                            && self.ui.expected_file == file_name
+                        {
                             self.ui.is_importing = false;
-                            self.ui.import_message = format!("Rechazado: {}", error_reason);
+                            self.ui.import_message =
+                                format!("Error de validación: {}", error_reason);
                             self.ui.import_is_error = true;
                         }
                     }
@@ -201,33 +233,56 @@ impl eframe::App for ArthemisApp {
                     }
                 }
             }
+
+            // Si llegó algún mensaje, forzamos el redibujado inmediato
+            if received_msg {
+                ctx.request_repaint();
+            }
         }
 
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
-                if let Some(db) = &self.db
-                    && let Ok(backend_tasks) = db.get_tasks_for_ui(wf)
-                {
-                    let mut ui_tasks = Vec::new();
-                    for (id, name, status_str, logs) in backend_tasks {
-                        let status_normalized = status_str.to_ascii_uppercase();
-                        let status = match status_normalized.as_str() {
-                            "RUNNING" => TaskStatus::Running,
-                            "SUCCESS" => TaskStatus::Success,
-                            "FAILED" => TaskStatus::Failed,
-                            _ => TaskStatus::Sleeping,
-                        };
-                        ui_tasks.push(Task {
-                            id,
-                            name,
-                            status,
-                            logs,
-                        });
+                if let Some(user_id) = self.ui.session_user_id {
+                    // Intento 1: Consultar via API HTTP al Coordinador remoto
+                    let url = format!(
+                        "http://{}:8081/tasks/{}/{}",
+                        self.ui.coordinator_ip, user_id, wf
+                    );
+
+                    let fetched_tasks = if let Ok(response) = reqwest::blocking::get(&url)
+                        && let Ok(backend_tasks) =
+                            response.json::<Vec<(i32, String, String, Vec<String>)>>()
+                    {
+                        Some(backend_tasks)
+                    } else if let Some(db) = &self.db {
+                        // Intento 2: Fallback a BDD local
+                        db.get_tasks_for_ui(user_id, wf).ok()
+                    } else {
+                        None
+                    };
+
+                    if let Some(backend_tasks) = fetched_tasks {
+                        let mut ui_tasks = Vec::new();
+                        for (id, name, status_str, logs) in backend_tasks {
+                            let status_normalized = status_str.to_ascii_uppercase();
+                            let status = match status_normalized.as_str() {
+                                "PENDING" => TaskStatus::Pending,
+                                "RUNNING" => TaskStatus::Running,
+                                "SUCCESS" => TaskStatus::Success,
+                                "FAILED" => TaskStatus::Failed,
+                                _ => TaskStatus::Sleeping,
+                            };
+                            ui_tasks.push(Task {
+                                id,
+                                name,
+                                status,
+                                logs,
+                            });
+                        }
+
+                        self.core.current_tasks = ui_tasks;
+                        self.core.loaded_workflow = Some(wf.clone());
                     }
-
-                    self.core.current_tasks = ui_tasks;
-
-                    self.core.loaded_workflow = Some(wf.clone());
                 }
             } else {
                 self.core.current_tasks.clear();
@@ -235,6 +290,7 @@ impl eframe::App for ArthemisApp {
             }
         }
 
+        // --- 3. REVISAR SI TERMINÓ LA EJECUCIÓN ---
         if self.core.workflow_execution_state == WorkflowExecutionState::Running {
             let has_running = self
                 .core
@@ -246,6 +302,7 @@ impl eframe::App for ArthemisApp {
                 .current_tasks
                 .iter()
                 .any(|t| t.status == TaskStatus::Pending);
+
             if !has_running && !has_pending {
                 self.core.workflow_running = false;
                 self.core.workflow_execution_state = WorkflowExecutionState::Idle;
@@ -255,11 +312,13 @@ impl eframe::App for ArthemisApp {
         if !self.ui.is_maximized {
             self.ui.is_maximized = true;
         }
-
-        ui::sidebar::draw(ctx, &mut self.ui);
-        ui::explorer::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
-        ui::central::draw(ctx, &self.ui, &mut self.core, self.db.as_ref());
-
-        ui::modals::draw_import_modal(ctx, &mut self.ui);
+        if self.ui.current_view == AppView::Login {
+            ui::login::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
+        } else {
+            ui::sidebar::draw(ctx, &mut self.ui, &mut self.core);
+            ui::explorer::draw(ctx, &mut self.ui, &mut self.core, self.db.as_ref());
+            ui::central::draw(ctx, &self.ui, &mut self.core);
+            ui::modals::draw_import_modal(ctx, &mut self.ui);
+        }
     }
 }

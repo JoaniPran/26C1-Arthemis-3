@@ -1,6 +1,7 @@
 use crate::SharedDatabase;
 use crate::artifact_server;
 use crate::db::Database;
+use crate::event_server;
 use crate::handler::WorkerHandler;
 use crate::monitor;
 use crate::parser::start_workflow_watcher;
@@ -14,7 +15,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::Duration;
 
-pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
+pub fn start_server(port: &str) {
     let addr = format!("0.0.0.0:{}", port);
 
     let db_instance = Database::new("arthemis.db").expect("Fallo al crear la base de datos");
@@ -32,21 +33,23 @@ pub fn start_server(port: &str, ui_tx: Option<Sender<String>>) {
 
     monitor::start_global_log_monitor(log_rx);
 
-    let ui_tx_watcher = ui_tx.clone();
-    start_workflow_watcher(database.clone(), folder, log_tx.clone(), ui_tx_watcher);
-
-    let ui_tx_supervisor = ui_tx.clone();
-    supervisor::start_watchdog(state.clone(), database.clone(), ui_tx_supervisor);
-
-    let ui_tx_dispatcher = ui_tx.clone();
-    start_dispatcher(state.clone(), database.clone(), ui_tx_dispatcher);
+    let db_clone = database.clone();
 
     thread::spawn(move || {
-        artifact_server::start_artifact_server("8081");
+        artifact_server::start_artifact_server("8081", db_clone.clone());
     });
 
     let listener = TcpListener::bind(&addr).expect("No se pudo bindear el puerto.");
     println!("Coordinador Arthemis 3 escuchando en {}...", addr);
+
+    let event_tx = event_server::start_event_server("8082");
+    let ui_tx = Some(event_tx);
+
+    start_workflow_watcher(database.clone(), folder, log_tx.clone(), ui_tx.clone());
+
+    supervisor::start_watchdog(state.clone(), database.clone(), ui_tx.clone());
+
+    start_dispatcher(state.clone(), database.clone(), ui_tx.clone());
 
     for stream in listener.incoming() {
         match stream {
@@ -96,7 +99,7 @@ fn start_dispatcher(
                             }
 
                             let artifact_to_upload = if task.produces.is_some() {
-                                Some(format!("artefacto_tarea_{}.zip", task.id))
+                                Some(format!("{}/artefacto_tarea_{}.zip", task.username, task.id))
                             } else {
                                 None
                             };

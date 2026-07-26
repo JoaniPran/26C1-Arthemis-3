@@ -29,6 +29,13 @@ impl TaskExecutor {
         };
 
         for artifact in downloads {
+            if let Some(parent) = std::path::Path::new(&artifact).parent()
+                && !parent.as_os_str().is_empty()
+            {
+                let dir_to_create = format!("{}/{}", workspace, parent.display());
+                let _ = fs::create_dir_all(dir_to_create);
+            }
+
             let _ = Self::send_log_fragment(
                 stream,
                 task_id,
@@ -36,9 +43,10 @@ impl TaskExecutor {
             );
 
             let curl_cmd = format!(
-                "curl -s -O http://{}:8081/download/{}",
-                coordinator_ip, artifact
+                "curl -s -o {} http://{}:8081/download/{}",
+                artifact, coordinator_ip, artifact
             );
+
             let _ = Command::new("sh")
                 .arg("-c")
                 .arg(&curl_cmd)
@@ -106,6 +114,13 @@ impl TaskExecutor {
         if exit_code == 0
             && let (Some(upload_name), Some(prod_path)) = (upload, produces)
         {
+            if let Some(parent) = std::path::Path::new(&upload_name).parent()
+                && !parent.as_os_str().is_empty()
+            {
+                let dir_to_create = format!("{}/{}", workspace, parent.display());
+                let _ = fs::create_dir_all(dir_to_create);
+            }
+
             let _ = Self::send_log_fragment(
                 stream,
                 task_id,

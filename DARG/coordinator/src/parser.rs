@@ -36,72 +36,104 @@ pub fn start_workflow_watcher(
     thread::spawn(move || {
         let mut processed_files: HashMap<String, SystemTime> = HashMap::new();
 
-        let db_lock = database.lock().unwrap();
-        if let Ok(known_workflows) = db_lock.get_all_workflows() {
-            for (file_name, _) in known_workflows {
-                let path_str = format!("{}/{}", folder_path, file_name);
-                let path = std::path::Path::new(&path_str);
-
-                if let Ok(metadata) = std::fs::metadata(path) {
-                    let modified_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-                    processed_files.insert(path_str, modified_time);
-                }
-            }
-        }
-        drop(db_lock);
-
         loop {
             thread::sleep(Duration::from_secs(2));
 
             if let Ok(entries) = std::fs::read_dir(&folder_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    if path
-                        .extension()
-                        .is_some_and(|ext| ext == "yaml" || ext == "yml")
-                    {
-                        let path_str = path.to_str().unwrap().to_string();
 
-                        if let Ok(metadata) = std::fs::metadata(&path) {
-                            let modified_time =
-                                metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-                            let last_processed_time = processed_files
-                                .get(&path_str)
-                                .copied()
-                                .unwrap_or(SystemTime::UNIX_EPOCH);
+                    if path.is_dir() {
+                        let username = path.file_name().unwrap().to_str().unwrap().to_string();
 
-                            if modified_time > last_processed_time {
-                                let db = database.lock().unwrap();
+                        if let Ok(user_entries) = std::fs::read_dir(&path) {
+                            for user_entry in user_entries.flatten() {
+                                let file_path = user_entry.path();
 
-                                match load_from_yaml(&db, &path_str) {
-                                    Ok((workflow_id, file_name, display_name)) => {
-                                        println!(
-                                            "Watcher: Cargado '{}' desde '{}' (ID: {})",
-                                            display_name, file_name, workflow_id
-                                        );
+                                if file_path
+                                    .extension()
+                                    .is_some_and(|ext| ext == "yaml" || ext == "yml")
+                                {
+                                    let path_str = file_path.to_str().unwrap().to_string();
+                                    let file_name = file_path
+                                        .file_name()
+                                        .and_then(|f| f.to_str())
+                                        .unwrap_or_default()
+                                        .to_string();
 
-                                        if let Some(ui_tx_s) = &ui_tx {
-                                            let _ = ui_tx_s.send(format!(
-                                                "LOADED:{}:{}",
-                                                file_name, display_name
-                                            ));
+                                    let metadata = std::fs::metadata(&file_path);
+                                    let modified_time = metadata
+                                        .as_ref()
+                                        .map(|m| m.modified().unwrap_or(SystemTime::UNIX_EPOCH))
+                                        .unwrap_or(SystemTime::UNIX_EPOCH);
+
+                                    let last_processed_time =
+                                        processed_files.get(&path_str).copied();
+
+                                    let is_new_or_modified = match last_processed_time {
+                                        None => true,
+                                        Some(last_time) => modified_time > last_time,
+                                    };
+
+                                    if is_new_or_modified {
+                                        let db = database.lock().unwrap();
+
+                                        match db.get_user_id_by_username(&username) {
+                                            Ok(user_id) => {
+                                                match load_from_yaml(&db, user_id, &path_str) {
+                                                    Ok((workflow_id, file_name, display_name)) => {
+                                                        println!(
+                                                            "Watcher: Cargado '{}' para usuario '{}' (ID Workflow: {})",
+                                                            display_name, username, workflow_id
+                                                        );
+
+                                                        if let Some(ui_tx_s) = &ui_tx {
+                                                            let _ = ui_tx_s.send(format!(
+                                                                "LOADED:{}:{}:{}",
+                                                                username, file_name, display_name
+                                                            ));
+                                                        }
+                                                        processed_files.insert(
+                                                            path_str.clone(),
+                                                            modified_time,
+                                                        );
+                                                        let _ = tx.send(LogEvent::StartWorkflow(
+                                                            display_name,
+                                                        ));
+                                                    }
+                                                    Err(e) => {
+                                                        eprintln!(
+                                                            "Watcher Error al procesar {}: {}",
+                                                            path_str, e
+                                                        );
+                                                        if let Some(ui_tx_s) = &ui_tx {
+                                                            let _ = ui_tx_s.send(format!(
+                                                                "ERROR:{}:{}",
+                                                                file_name, e
+                                                            ));
+                                                        }
+                                                        processed_files.insert(
+                                                            path_str.clone(),
+                                                            modified_time,
+                                                        );
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                eprintln!(
+                                                    "Watcher Error: No se encontró el usuario '{}' en la BDD: {}",
+                                                    username, e
+                                                );
+                                                if let Some(ui_tx_s) = &ui_tx {
+                                                    let _ = ui_tx_s.send(format!(
+                                                        "ERROR:{}:Usuario '{}' no registrado en la BDD del Coordinador",
+                                                        file_name, username
+                                                    ));
+                                                }
+                                                processed_files
+                                                    .insert(path_str.clone(), modified_time);
+                                            }
                                         }
-
-                                        processed_files.insert(path_str.clone(), modified_time);
-                                        let _ = tx.send(LogEvent::StartWorkflow(display_name));
-                                    }
-                                    Err(e) => {
-                                        eprintln!("Watcher Error al procesar {}: {}", path_str, e);
-
-                                        if let Some(ui_tx_s) = &ui_tx
-                                            && let Some(file_name_os) = path.file_name()
-                                            && let Some(file_name) = file_name_os.to_str()
-                                        {
-                                            let _ =
-                                                ui_tx_s.send(format!("ERROR:{}:{}", file_name, e));
-                                        }
-
-                                        processed_files.insert(path_str.clone(), modified_time);
                                     }
                                 }
                             }
@@ -113,7 +145,11 @@ pub fn start_workflow_watcher(
     });
 }
 
-fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String, String), Box<dyn Error>> {
+fn load_from_yaml(
+    db: &Database,
+    user_id: i32,
+    file_path: &str,
+) -> Result<(i32, String, String), Box<dyn Error>> {
     let content = fs::read_to_string(file_path)?;
     let workflow: WorkflowYaml = serde_yaml::from_str(&content)?;
     let file_name = Path::new(file_path)
@@ -125,7 +161,7 @@ fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String, String
 
     validate_workflow(&workflow)?;
 
-    if let Ok(wf_id) = db.get_workflow_id(&file_name) {
+    if let Ok(wf_id) = db.get_workflow_id(user_id, &file_name) {
         println!("Parser: Actualizando archivo modificado '{}'...", file_name);
         db.delete_workflows(wf_id)?;
     }
@@ -136,7 +172,7 @@ fn load_from_yaml(db: &Database, file_path: &str) -> Result<(i32, String, String
         workflow.tasks.len()
     );
 
-    let wf_id = save_new_workflow(db, &file_name, &workflow)?;
+    let wf_id = save_new_workflow(db, user_id, &file_name, &workflow)?;
 
     Ok((wf_id, file_name, workflow.name))
 }
@@ -159,10 +195,11 @@ fn validate_workflow(workflow: &WorkflowYaml) -> Result<(), Box<dyn Error>> {
 
 fn save_new_workflow(
     db: &Database,
+    user_id: i32,
     file_name: &str,
     workflow: &WorkflowYaml,
 ) -> Result<i32, Box<dyn Error>> {
-    let wf_id = db.insert_workflow(file_name, &workflow.name)?;
+    let wf_id = db.insert_workflow(user_id, file_name, &workflow.name)?;
     let mut name_to_id: HashMap<String, i32> = HashMap::new();
 
     for task in &workflow.tasks {

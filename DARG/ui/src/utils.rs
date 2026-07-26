@@ -1,7 +1,11 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-pub fn copy_workflow_file(source_path: &PathBuf) -> Result<String, String> {
+pub fn upload_workflow_file(
+    source_path: &PathBuf,
+    username: &str,
+    coordinator_ip: &str,
+) -> Result<String, String> {
     let ext = source_path
         .extension()
         .unwrap_or_default()
@@ -13,16 +17,32 @@ pub fn copy_workflow_file(source_path: &PathBuf) -> Result<String, String> {
         return Err("Error: Formato no soportado. Solo se permiten archivos .yaml".to_string());
     }
 
-    let dest_dir = Path::new("workflows");
-    if let Err(e) = fs::create_dir_all(dest_dir) {
-        return Err(format!("Error al crear carpeta destino: {}", e));
-    }
+    let file_name = source_path
+        .file_name()
+        .ok_or("Ruta de archivo inválida")?
+        .to_string_lossy()
+        .to_string();
 
-    let file_name = source_path.file_name().ok_or("Ruta de archivo inválida")?;
-    let destination = dest_dir.join(file_name);
+    let file_bytes =
+        fs::read(source_path).map_err(|e| format!("Error al leer el archivo local: {}", e))?;
 
-    match fs::copy(source_path, destination) {
-        Ok(_) => Ok(file_name.to_string_lossy().to_string()),
-        Err(e) => Err(format!("Error interno al guardar el archivo: {}", e)),
+    let url = format!(
+        "http://{}:8081/upload_workflow/{}/{}",
+        coordinator_ip, username, file_name
+    );
+
+    let client = reqwest::blocking::Client::new();
+
+    // Tipo explícito reqwest::blocking::Response para evitar error de inferencia
+    let res: Result<reqwest::blocking::Response, reqwest::Error> =
+        client.post(&url).body(file_bytes).send();
+
+    match res {
+        Ok(response) if response.status().is_success() => Ok(file_name),
+        Ok(response) => Err(format!(
+            "El servidor devolvió el código: {}",
+            response.status()
+        )),
+        Err(e) => Err(format!("Fallo al enviar el archivo al Coordinador: {}", e)),
     }
 }

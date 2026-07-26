@@ -1,0 +1,38 @@
+
+
+name: sistema-distribuido
+
+services:
+
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mi-worker
+    container_name: coordinator
+    ports:
+      - "8080:8080" 
+      - "8081:8081" 
+      - "8082:8082"
+    command: ./target/release/coordinator
+    env_file:
+      - .env
+    volumes:
+      - ./workflows:/app/workflows
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mi-worker
+    network_mode: "host"
+    command: bash -c "RAND_ID=$$(head -c 20 /dev/urandom | tr -dc 'a-z0-9' | head -c 4); ./target/release/worker worker_$$RAND_ID ${COORDINATOR_IP:-127.0.0.1}:${COORDINATOR_PORT:-8080}"
+    env_file:
+      - .env
+    depends_on:
+      - coordinator
+    restart: always
+
+volumes:
+  db_data:
