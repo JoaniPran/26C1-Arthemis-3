@@ -103,12 +103,11 @@ pub fn draw(
                                                     "http://{}:8081/workflows/{}",
                                                     ui_state.coordinator_ip, user_id
                                                 );
-                                                if let Ok(wf_res) = client.get(&wf_url).send() {
-                                                    if let Ok(user_wfs) =
+                                                if let Ok(wf_res) = client.get(&wf_url).send()
+                                                    && let Ok(user_wfs) =
                                                         wf_res.json::<Vec<(String, String)>>()
-                                                    {
-                                                        core_state.workflows = user_wfs;
-                                                    }
+                                                {
+                                                    core_state.workflows = user_wfs;
                                                 }
 
                                                 ui_state.current_view = AppView::Workflows;
@@ -173,12 +172,11 @@ pub fn draw(
                                                     "http://{}:8081/workflows/{}",
                                                     ui_state.coordinator_ip, user_id
                                                 );
-                                                if let Ok(wf_res) = client.get(&wf_url).send() {
-                                                    if let Ok(user_wfs) =
+                                                if let Ok(wf_res) = client.get(&wf_url).send()
+                                                    && let Ok(user_wfs) =
                                                         wf_res.json::<Vec<(String, String)>>()
-                                                    {
-                                                        core_state.workflows = user_wfs;
-                                                    }
+                                                {
+                                                    core_state.workflows = user_wfs;
                                                 }
 
                                                 ui_state.current_view = AppView::Workflows;

@@ -29,11 +29,11 @@ impl TaskExecutor {
         };
 
         for artifact in downloads {
-            if let Some(parent) = std::path::Path::new(&artifact).parent() {
-                if !parent.as_os_str().is_empty() {
-                    let dir_to_create = format!("{}/{}", workspace, parent.display());
-                    let _ = fs::create_dir_all(dir_to_create);
-                }
+            if let Some(parent) = std::path::Path::new(&artifact).parent()
+                && !parent.as_os_str().is_empty()
+            {
+                let dir_to_create = format!("{}/{}", workspace, parent.display());
+                let _ = fs::create_dir_all(dir_to_create);
             }
 
             let _ = Self::send_log_fragment(
@@ -114,11 +114,11 @@ impl TaskExecutor {
         if exit_code == 0
             && let (Some(upload_name), Some(prod_path)) = (upload, produces)
         {
-            if let Some(parent) = std::path::Path::new(&upload_name).parent() {
-                if !parent.as_os_str().is_empty() {
-                    let dir_to_create = format!("{}/{}", workspace, parent.display());
-                    let _ = fs::create_dir_all(dir_to_create);
-                }
+            if let Some(parent) = std::path::Path::new(&upload_name).parent()
+                && !parent.as_os_str().is_empty()
+            {
+                let dir_to_create = format!("{}/{}", workspace, parent.display());
+                let _ = fs::create_dir_all(dir_to_create);
             }
 
             let _ = Self::send_log_fragment(

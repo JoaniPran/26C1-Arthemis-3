@@ -107,19 +107,20 @@ pub fn start_artifact_server(port: &str, database: Arc<Mutex<Database>>) {
         if request.method() == "GET" && request.url().starts_with("/workflows/") {
             let url = request.url();
             let parts: Vec<&str> = url.split('/').skip(2).collect();
-            if parts.len() == 1 {
-                if let Ok(user_id) = parts[0].parse::<i32>() {
-                    let db = database.lock().unwrap();
-                    match db.get_workflows_for_user(user_id) {
-                        Ok(user_workflows) => return Response::json(&user_workflows),
-                        Err(e) => {
-                            eprintln!("Error de BDD al obtener workflows: {}", e);
-                            return Response::text("Error al obtener workflows de la BDD")
-                                .with_status_code(500);
-                        }
+            if parts.len() == 1
+                && let Ok(user_id) = parts[0].parse::<i32>()
+            {
+                let db = database.lock().unwrap();
+                match db.get_workflows_for_user(user_id) {
+                    Ok(user_workflows) => return Response::json(&user_workflows),
+                    Err(e) => {
+                        eprintln!("Error de BDD al obtener workflows: {}", e);
+                        return Response::text("Error al obtener workflows de la BDD")
+                            .with_status_code(500);
                     }
                 }
             }
+
             return Response::text("Parámetro user_id inválido").with_status_code(400);
         }
 
@@ -131,11 +132,11 @@ pub fn start_artifact_server(port: &str, database: Arc<Mutex<Database>>) {
                 && let Ok(user_id) = parts[0].parse::<i32>()
             {
                 let file_name = parts[1];
-                if let Ok(db) = Database::new("arthemis.db") {
-                    if let Ok(tasks) = db.get_tasks_for_ui(user_id, file_name) {
-                        // Devuelve la tupla (id, name, status, logs) directo como JSON
-                        return Response::json(&tasks);
-                    }
+                if let Ok(db) = Database::new("arthemis.db")
+                    && let Ok(tasks) = db.get_tasks_for_ui(user_id, file_name)
+                {
+                    // Devuelve la tupla (id, name, status, logs) directo como JSON
+                    return Response::json(&tasks);
                 }
             }
             return Response::text("Error al obtener tareas").with_status_code(500);

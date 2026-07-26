@@ -1,4 +1,4 @@
-use crate::app::{CoreState, UiState};
+use crate::app::UiState;
 use crate::ui::themes::Theme;
 use crate::utils::upload_workflow_file;
 use eframe::egui;
@@ -11,22 +11,22 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
         return;
     }
 
-    if let Some(rx) = &ui_state.upload_rx {
-        if let Ok(result) = rx.try_recv() {
-            match result {
-                Ok(file_name) => {
-                    ui_state.expected_file = file_name.clone();
-                    ui_state.import_message = "Validando YAML...".to_string();
-                    ui_state.import_is_error = false;
-                }
-                Err(error_msg) => {
-                    ui_state.is_importing = false;
-                    ui_state.import_message = error_msg;
-                    ui_state.import_is_error = true;
-                }
+    if let Some(rx) = &ui_state.upload_rx
+        && let Ok(result) = rx.try_recv()
+    {
+        match result {
+            Ok(file_name) => {
+                ui_state.expected_file = file_name.clone();
+                ui_state.import_message = "Validando YAML...".to_string();
+                ui_state.import_is_error = false;
             }
-            ui_state.upload_rx = None;
+            Err(error_msg) => {
+                ui_state.is_importing = false;
+                ui_state.import_message = error_msg;
+                ui_state.import_is_error = true;
+            }
         }
+        ui_state.upload_rx = None;
     }
 
     egui::Area::new(egui::Id::new("modal_overlay"))

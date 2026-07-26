@@ -148,26 +148,26 @@ impl eframe::App for ArthemisApp {
                         let file_name = parts[2].to_string();
                         let display_name = parts[3].to_string();
 
-                        // 💡 FILTRO: Solo procesamos si coincide con el usuario en sesión
-                        if let Some(session_user) = &self.ui.session_username {
-                            if session_user == owner_username {
-                                if self.ui.is_importing && self.ui.expected_file == file_name {
-                                    self.ui.is_importing = false;
-                                    self.ui.import_message =
-                                        format!("Pipeline '{}' cargado y validado", file_name);
-                                    self.ui.import_is_error = false;
-                                }
+                        // FILTRO: Solo procesamos si coincide con el usuario en sesión
+                        if let Some(session_user) = &self.ui.session_username
+                            && session_user == owner_username
+                        {
+                            if self.ui.is_importing && self.ui.expected_file == file_name {
+                                self.ui.is_importing = false;
+                                self.ui.import_message =
+                                    format!("Pipeline '{}' cargado y validado", file_name);
+                                self.ui.import_is_error = false;
+                            }
 
-                                if let Some(existing) = self
-                                    .core
-                                    .workflows
-                                    .iter_mut()
-                                    .find(|(f, _)| f == &file_name)
-                                {
-                                    existing.1 = display_name;
-                                } else {
-                                    self.core.workflows.push((file_name.clone(), display_name));
-                                }
+                            if let Some(existing) = self
+                                .core
+                                .workflows
+                                .iter_mut()
+                                .find(|(f, _)| f == &file_name)
+                            {
+                                existing.1 = display_name;
+                            } else {
+                                self.core.workflows.push((file_name.clone(), display_name));
                             }
                         }
                     }
@@ -179,16 +179,15 @@ impl eframe::App for ArthemisApp {
                         let file_name = parts[2];
                         let error_reason = parts[3];
 
-                        if let Some(session_user) = &self.ui.session_username {
-                            if session_user == owner_username
-                                && self.ui.is_importing
-                                && self.ui.expected_file == file_name
-                            {
-                                self.ui.is_importing = false;
-                                self.ui.import_message =
-                                    format!("Error de validación: {}", error_reason);
-                                self.ui.import_is_error = true;
-                            }
+                        if let Some(session_user) = &self.ui.session_username
+                            && session_user == owner_username
+                            && self.ui.is_importing
+                            && self.ui.expected_file == file_name
+                        {
+                            self.ui.is_importing = false;
+                            self.ui.import_message =
+                                format!("Error de validación: {}", error_reason);
+                            self.ui.import_is_error = true;
                         }
                     }
                 } else if msg.starts_with("LOG:") {

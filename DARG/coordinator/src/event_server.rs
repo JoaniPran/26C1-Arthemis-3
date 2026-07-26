@@ -18,12 +18,10 @@ pub fn start_event_server(port: &str) -> EventSender {
             TcpListener::bind(&addr).expect("No se pudo bindear el puerto de eventos UI");
         println!("Servidor de Eventos para la UI escuchando en {}...", addr);
 
-        for stream in listener.incoming() {
-            if let Ok(s) = stream {
-                let _ = s.set_nonblocking(true); // Evita bloqueos
-                clients_clone.lock().unwrap().push(s);
-                println!("UI conectada al servidor de eventos.");
-            }
+        for s in listener.incoming().flatten() {
+            let _ = s.set_nonblocking(true); // Evita bloqueos
+            clients_clone.lock().unwrap().push(s);
+            println!("UI conectada al servidor de eventos.");
         }
     });
 

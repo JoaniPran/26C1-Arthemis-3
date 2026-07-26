@@ -149,12 +149,11 @@ pub fn draw(
                             let _ = fs::remove_file(&workflow_path);
                         }
 
-                        if let Some(user_id) = ui_state.session_user_id {
-                            if let Some(db) = db
-                                && let Ok(workflow_id) = db.get_workflow_id(user_id, &file_name)
-                            {
-                                let _ = db.delete_workflows(workflow_id);
-                            }
+                        if let Some(user_id) = ui_state.session_user_id
+                            && let Some(db) = db
+                            && let Ok(workflow_id) = db.get_workflow_id(user_id, &file_name)
+                        {
+                            let _ = db.delete_workflows(workflow_id);
                         }
 
                         core_state.workflows.retain(|(f, _)| f != &file_name);
