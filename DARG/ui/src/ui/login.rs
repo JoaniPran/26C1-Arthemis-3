@@ -28,23 +28,20 @@ pub fn draw(
                         let username = ui_state.login_username_input.trim().to_string();
                         let password = ui_state.login_password_input.trim().to_string();
 
-                                if username.is_empty() || password.is_empty() {
-                                    ui_state.login_error =
-                                        "Usuario y contraseña requeridos".to_string();
-                                } else {
-                                    let url =
-                                        format!("https://{}:8081/login", ui_state.coordinator_ip);
-                                    let body = serde_json::json!({
-                                        "username": username,
-                                        "password": password
-                                    });
+                        if username.is_empty() || password.is_empty() {
+                            ui_state.login_error = "Usuario y contraseña requeridos".to_string();
+                        } else {
+                            let url = format!("https://{}:8081/register", ui_state.coordinator_ip);
+                            let body = serde_json::json!({
+                                "username": username,
+                                "password": password
+                            });
 
-                                    let client = crate::utils::insecure_client();
-                                    match client.post(&url).json(&body).send() {
-                                        Ok(response) if response.status().is_success() => {
-                                            if let Ok(data) = response.json::<serde_json::Value>() {
-                                                let user_id =
-                                                    data["user_id"].as_i64().unwrap_or(0) as i32;
+                            let client = crate::utils::insecure_client();
+                            match client.post(&url).json(&body).send() {
+                                Ok(response) if response.status().is_success() => {
+                                    if let Ok(data) = response.json::<serde_json::Value>() {
+                                        let user_id = data["user_id"].as_i64().unwrap_or(0) as i32;
 
                                         ui_state.session_user_id = Some(user_id);
                                         ui_state.session_username = Some(username.clone());
@@ -55,16 +52,16 @@ pub fn draw(
                                         core_state.loaded_workflow = None;
                                         core_state.current_tasks.clear();
 
-                                                let wf_url = format!(
-                                                    "https://{}:8081/workflows/{}",
-                                                    ui_state.coordinator_ip, user_id
-                                                );
-                                                if let Ok(wf_res) = client.get(&wf_url).send()
-                                                    && let Ok(user_wfs) =
-                                                        wf_res.json::<Vec<(String, String)>>()
-                                                {
-                                                    core_state.workflows = user_wfs;
-                                                }
+                                        let wf_url = format!(
+                                            "https://{}:8081/workflows/{}",
+                                            ui_state.coordinator_ip, user_id
+                                        );
+                                        if let Ok(wf_res) = client.get(&wf_url).send()
+                                            && let Ok(user_wfs) =
+                                                wf_res.json::<Vec<(String, String)>>()
+                                        {
+                                            core_state.workflows = user_wfs;
+                                        }
 
                                         ui_state.current_view = AppView::Workflows;
                                     }
@@ -94,25 +91,20 @@ pub fn draw(
                         let username = ui_state.login_username_input.trim().to_string();
                         let password = ui_state.login_password_input.trim().to_string();
 
-                                if username.is_empty() || password.is_empty() {
-                                    ui_state.login_error =
-                                        "Usuario y contraseña requeridos".to_string();
-                                } else {
-                                    let url = format!(
-                                        "https://{}:8081/register",
-                                        ui_state.coordinator_ip
-                                    );
-                                    let body = serde_json::json!({
-                                        "username": username,
-                                        "password": password
-                                    });
+                        if username.is_empty() || password.is_empty() {
+                            ui_state.login_error = "Usuario y contraseña requeridos".to_string();
+                        } else {
+                            let url = format!("https://{}:8081/login", ui_state.coordinator_ip);
+                            let body = serde_json::json!({
+                                "username": username,
+                                "password": password
+                            });
 
-                                    let client = crate::utils::insecure_client();
-                                    match client.post(&url).json(&body).send() {
-                                        Ok(response) if response.status().is_success() => {
-                                            if let Ok(data) = response.json::<serde_json::Value>() {
-                                                let user_id =
-                                                    data["user_id"].as_i64().unwrap_or(0) as i32;
+                            let client = crate::utils::insecure_client();
+                            match client.post(&url).json(&body).send() {
+                                Ok(response) if response.status().is_success() => {
+                                    if let Ok(data) = response.json::<serde_json::Value>() {
+                                        let user_id = data["user_id"].as_i64().unwrap_or(0) as i32;
 
                                         ui_state.session_user_id = Some(user_id);
                                         ui_state.session_username = Some(username.clone());
@@ -123,16 +115,16 @@ pub fn draw(
                                         core_state.loaded_workflow = None;
                                         core_state.current_tasks.clear();
 
-                                                let wf_url = format!(
-                                                    "https://{}:8081/workflows/{}",
-                                                    ui_state.coordinator_ip, user_id
-                                                );
-                                                if let Ok(wf_res) = client.get(&wf_url).send()
-                                                    && let Ok(user_wfs) =
-                                                        wf_res.json::<Vec<(String, String)>>()
-                                                {
-                                                    core_state.workflows = user_wfs;
-                                                }
+                                        let wf_url = format!(
+                                            "https://{}:8081/workflows/{}",
+                                            ui_state.coordinator_ip, user_id
+                                        );
+                                        if let Ok(wf_res) = client.get(&wf_url).send()
+                                            && let Ok(user_wfs) =
+                                                wf_res.json::<Vec<(String, String)>>()
+                                        {
+                                            core_state.workflows = user_wfs;
+                                        }
 
                                         ui_state.current_view = AppView::Workflows;
                                     }
