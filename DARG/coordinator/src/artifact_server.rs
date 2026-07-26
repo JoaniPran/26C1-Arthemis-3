@@ -45,6 +45,17 @@ pub fn start_artifact_server(port: &str, database: Arc<Mutex<Database>>) {
     rouille::start_server(addr, move |request| {
         let url = request.url();
 
+        if request.method() == "GET" && url == "/workers_count" {
+            let db = database.lock().unwrap();
+            return match db.get_connected_worker_count() {
+                Ok(count) => Response::text(count.to_string()).with_status_code(200),
+                Err(e) => {
+                    eprintln!("Error al consultar workers conectados: {}", e);
+                    Response::text("0").with_status_code(500)
+                }
+            };
+        }
+
         if request.method() == "POST" && url.starts_with("/upload_workflow/") {
             let path_suffix = url.replace("/upload_workflow/", "");
             let filepath = format!("{}/{}", workflows_dir, path_suffix);

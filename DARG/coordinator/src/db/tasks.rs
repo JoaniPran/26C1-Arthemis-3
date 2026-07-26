@@ -312,6 +312,43 @@ impl Database {
         )
     }
 
+    pub fn register_worker(&self, worker_id: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO workers (id, connected, last_seen)
+             VALUES (?1, 1, strftime('%s', 'now'))
+             ON CONFLICT(id) DO UPDATE SET
+                 connected = 1,
+                 last_seen = excluded.last_seen",
+            params![worker_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_worker_disconnected(&self, worker_id: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE workers
+             SET connected = 0,
+                 last_seen = strftime('%s', 'now')
+             WHERE id = ?1",
+            params![worker_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_connected_worker_count(&self) -> Result<i32> {
+        self.conn.query_row(
+            "SELECT COUNT(*) FROM workers WHERE connected = 1",
+            [],
+            |row| row.get(0),
+        )
+    }
+
+    pub fn reset_all_workers_disconnected(&self) -> Result<()> {
+        self.conn
+            .execute("UPDATE workers SET connected = 0", [])?;
+        Ok(())
+    }
+
     pub fn get_user_id_by_username(&self, username: &str) -> rusqlite::Result<i32> {
         self.conn.query_row(
             "SELECT id FROM users WHERE username = ?1",

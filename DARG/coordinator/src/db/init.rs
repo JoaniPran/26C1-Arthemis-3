@@ -60,6 +60,12 @@ impl Database {
                 log_line TEXT NOT NULL,
                 FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS workers (
+                id TEXT PRIMARY KEY,
+                connected INTEGER NOT NULL DEFAULT 0,
+                last_seen INTEGER NOT NULL
+            );
             ",
         )?;
         Ok(())

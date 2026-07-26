@@ -4,6 +4,7 @@ use crate::ui::themes::Theme;
 use coordinator::db::Database;
 use eframe::egui;
 use std::sync::mpsc::Receiver;
+use std::time::{Duration, Instant};
 
 #[derive(PartialEq, Clone)]
 pub enum TaskStatus {
@@ -47,6 +48,7 @@ pub struct UiState {
     pub session_username: Option<String>,
     pub coordinator_ip: String,
     pub upload_rx: Option<Receiver<Result<String, String>>>,
+    pub last_workers_refresh: Instant,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -112,6 +114,7 @@ impl Default for ArthemisApp {
                 session_username: None,
                 upload_rx: None,
                 coordinator_ip: "127.0.0.1".to_string(),
+                last_workers_refresh: Instant::now() - Duration::from_secs(5),
             },
             core: CoreState {
                 workflows: vec![],
@@ -134,13 +137,7 @@ impl eframe::App for ArthemisApp {
             while let Ok(msg) = rx.try_recv() {
                 received_msg = true;
 
-                if msg.starts_with("WORKERS:") {
-                    if let Some(count) = msg.split(':').nth(1)
-                        && let Ok(parsed) = count.parse::<usize>()
-                    {
-                        self.ui.connected_workers = parsed;
-                    }
-                } else if msg.starts_with("LOADED:") {
+                if msg.starts_with("LOADED:") {
                     // Expect: "LOADED:username:file_name:display_name"
                     let parts: Vec<&str> = msg.splitn(4, ':').collect();
                     if parts.len() == 4 {
@@ -239,6 +236,21 @@ impl eframe::App for ArthemisApp {
                 ctx.request_repaint();
             }
         }
+
+        if self.ui.last_workers_refresh.elapsed() >= Duration::from_secs(2) {
+            let url = format!("http://{}:8081/workers_count", self.ui.coordinator_ip);
+
+            if let Ok(response) = reqwest::blocking::get(&url)
+                && let Ok(body) = response.text()
+                && let Ok(count) = body.trim().parse::<usize>()
+            {
+                self.ui.connected_workers = count;
+            }
+
+            self.ui.last_workers_refresh = Instant::now();
+        }
+
+        ctx.request_repaint_after(Duration::from_secs(2));
 
         if self.core.selected_workflow != self.core.loaded_workflow {
             if let Some(wf) = &self.core.selected_workflow {
