@@ -138,7 +138,6 @@ impl eframe::App for ArthemisApp {
                 received_msg = true;
 
                 if msg.starts_with("LOADED:") {
-                    // Expect: "LOADED:username:file_name:display_name"
                     let parts: Vec<&str> = msg.splitn(4, ':').collect();
                     if parts.len() == 4 {
                         let owner_username = parts[1];

@@ -5,7 +5,6 @@ use std::thread;
 
 pub type EventSender = mpsc::Sender<String>;
 
-/// Inicia el servidor donde se conectarán las UIs remotas
 pub fn start_event_server(port: &str) -> EventSender {
     let (tx, rx) = mpsc::channel::<String>();
     let clients = Arc::new(Mutex::new(Vec::new()));
@@ -25,7 +24,6 @@ pub fn start_event_server(port: &str) -> EventSender {
         }
     });
 
-    // Hilo 2: Broadcast de eventos recibidos por el canal interno hacia todas las UIs conectadas
     thread::spawn(move || {
         while let Ok(msg) = rx.recv() {
             let mut clients_guard = clients.lock().unwrap();
