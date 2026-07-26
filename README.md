@@ -6,6 +6,23 @@
 
 A continuación se detallan los pasos para compilar y ejecutar el programa.
 
+## Certificado
+
+En la máquina que va a correr el rol de Coordinador, **antes** de `docker compose
+up` o `cargo run -p coordinator`, generar el cert en el host (no dentro del contenedor — el volumen lo monta
+adentro solo, no hace falta correr nada de OpenSSL en la imagen):
+
+```bash
+cd DARG
+mkdir -p coordinator/certs
+openssl req -x509 -newkey rsa:4096 \
+  -keyout coordinator/certs/coordinator.key \
+  -out coordinator/certs/coordinator.pem \
+  -days 365 -nodes \
+  -subj "/CN=coordinator"
+
+```
+
 ## Compilación
 
 - Para compilar el proyecto (modo debug):
