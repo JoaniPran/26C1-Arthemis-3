@@ -201,11 +201,7 @@ impl Database {
         Ok(workflows)
     }
 
-    pub fn get_tasks_for_ui(
-        &self,
-        user_id: i32,
-        file_name: &str,
-    ) -> Result<Vec<UiTask>> {
+    pub fn get_tasks_for_ui(&self, user_id: i32, file_name: &str) -> Result<Vec<UiTask>> {
         let wf_id: i32 = match self.get_workflow_id(user_id, file_name) {
             Ok(id) => id,
             Err(_) => return Ok(vec![]),
@@ -344,8 +340,7 @@ impl Database {
     }
 
     pub fn reset_all_workers_disconnected(&self) -> Result<()> {
-        self.conn
-            .execute("UPDATE workers SET connected = 0", [])?;
+        self.conn.execute("UPDATE workers SET connected = 0", [])?;
         Ok(())
     }
 
