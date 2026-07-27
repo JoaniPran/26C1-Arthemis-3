@@ -77,6 +77,13 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
                         .on_hover_text("Cerrar Sesión");
 
                     if response.clicked() {
+                        if let Some(user_id) = ui_state.session_user_id {
+                            let url = format!("https://{}:8081/logout", ui_state.coordinator_ip);
+                            let body = serde_json::json!({ "user_id": user_id });
+                            let client = crate::utils::insecure_client();
+                            let _ = client.post(&url).json(&body).send();
+                        }
+
                         ui_state.session_user_id = None;
                         ui_state.session_username = None;
                         ui_state.login_password_input.clear();

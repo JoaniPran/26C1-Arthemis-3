@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+
+use std::collections::{HashMap, HashSet};
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -12,6 +13,7 @@ pub struct WorkerInfo {
 #[derive(Clone)]
 pub struct CoordinatorState {
     workers: Arc<Mutex<HashMap<String, WorkerInfo>>>,
+    active_users: Arc<Mutex<HashSet<i32>>>,
 }
 
 impl Default for CoordinatorState {
@@ -24,7 +26,23 @@ impl CoordinatorState {
     pub fn new() -> Self {
         Self {
             workers: Arc::new(Mutex::new(HashMap::new())),
+            active_users: Arc::new(Mutex::new(HashSet::new())),
         }
+    }
+
+    pub fn try_login_user(&self, user_id: i32) -> bool {
+        let mut users = self.active_users.lock().unwrap();
+        users.insert(user_id)
+    }
+
+    pub fn logout_user(&self, user_id: i32) -> bool {
+        let mut users = self.active_users.lock().unwrap();
+        users.remove(&user_id)
+    }
+
+    pub fn is_user_logged_in(&self, user_id: i32) -> bool {
+        let users = self.active_users.lock().unwrap();
+        users.contains(&user_id)
     }
 
     pub fn worker_count(&self) -> usize {
