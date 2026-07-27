@@ -31,6 +31,11 @@ struct ResetWorkflowRequest {
     workflow_name: String,
 }
 
+#[derive(Deserialize)]
+pub struct LogoutRequest {
+    pub user_id: i32,
+}
+
 pub fn start_artifact_server(
     port: &str,
     database: Arc<Mutex<Database>>,
@@ -175,7 +180,7 @@ pub fn start_artifact_server(
                 };
             }
 
-            if request.method() == "POST" && request.url() == "/register" {
+           if request.method() == "POST" && request.url() == "/register" {
                 let req_data: AuthRequest = match json_input(request) {
                     Ok(data) => data,
                     Err(_) => return Response::text("JSON inválido").with_status_code(400),
@@ -183,10 +188,14 @@ pub fn start_artifact_server(
 
                 let db = database.lock().unwrap();
                 return match db.register_user(&req_data.username, &req_data.password) {
-                    Ok(user_id) => Response::json(&AuthResponse {
-                        user_id,
-                        username: req_data.username,
-                    }),
+                    Ok(user_id) => {
+                        coordinator_state.try_login_user(user_id);
+                        
+                        Response::json(&AuthResponse {
+                            user_id,
+                            username: req_data.username,
+                        })
+                    }
                     Err(_) => Response::text("El usuario ya existe").with_status_code(400),
                 };
             }
@@ -199,12 +208,30 @@ pub fn start_artifact_server(
 
                 let db = database.lock().unwrap();
                 return match db.authenticate_user(&req_data.username, &req_data.password) {
-                    Ok(user_id) => Response::json(&AuthResponse {
-                        user_id,
-                        username: req_data.username,
-                    }),
+                    Ok(user_id) => {
+
+                        if coordinator_state.try_login_user(user_id) {
+                            Response::json(&AuthResponse {
+                                user_id,
+                                username: req_data.username,
+                            })
+                        } else {
+                            Response::text("El usuario ya tiene una sesión activa")
+                                .with_status_code(409)
+                        }
+                    }
                     Err(_) => Response::text("Credenciales incorrectas").with_status_code(401),
                 };
+            }
+
+            if request.method() == "POST" && request.url() == "/logout" {
+                let req_data: LogoutRequest = match json_input(request) {
+                    Ok(data) => data,
+                    Err(_) => return Response::text("JSON inválido").with_status_code(400),
+                };
+
+                coordinator_state.logout_user(req_data.user_id);
+                return Response::text("Sesión cerrada").with_status_code(200);
             }
 
             if request.method() == "POST" && url.starts_with("/upload/") {

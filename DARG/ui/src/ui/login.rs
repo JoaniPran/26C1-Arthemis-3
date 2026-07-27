@@ -132,6 +132,10 @@ pub fn draw(
                                 Ok(response) if response.status().as_u16() == 401 => {
                                     ui_state.login_error = "Credenciales incorrectas".to_string();
                                 }
+                                Ok(response) if response.status().as_u16() == 409 => {
+                                    ui_state.login_error =
+                                        "El usuario ya tiene una sesión activa".to_string();
+                                }
                                 Ok(_) => {
                                     ui_state.login_error =
                                         "Error del servidor al iniciar sesión".to_string();
