@@ -2,6 +2,11 @@
 
 ## Integrantes
 
+* **Integrante 1** - [Luis Laos Pinto](https://github.com/Gonza2508)
+* **Integrante 2** - [Joani Alejandro Pranteda](https://github.com/JoaniPran)
+* **Integrante 3** - [Valentina Dı́az Racioppi ](https://github.com/Valudiaz78)
+* **Integrante 3** - [Luis Trebejo](https://github.com/luistrebejoIt)
+
 # Como usar
 
 A continuación se detallan los pasos para compilar y ejecutar el programa.
