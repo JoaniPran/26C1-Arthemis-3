@@ -169,7 +169,6 @@ impl eframe::App for ArthemisApp {
                         }
                     }
                 } else if msg.starts_with("ERROR:") {
-                    // Expect: "ERROR:username:file_name:error_reason"
                     let parts: Vec<&str> = msg.splitn(4, ':').collect();
                     if parts.len() == 4 {
                         let owner_username = parts[1];

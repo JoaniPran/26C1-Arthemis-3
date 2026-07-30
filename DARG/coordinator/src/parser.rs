@@ -108,8 +108,8 @@ pub fn start_workflow_watcher(
                                                         );
                                                         if let Some(ui_tx_s) = &ui_tx {
                                                             let _ = ui_tx_s.send(format!(
-                                                                "ERROR:{}:{}",
-                                                                file_name, e
+                                                                "ERROR:{}:{}:{}",
+                                                                username, file_name, e
                                                             ));
                                                         }
                                                         processed_files.insert(
@@ -126,9 +126,9 @@ pub fn start_workflow_watcher(
                                                 );
                                                 if let Some(ui_tx_s) = &ui_tx {
                                                     let _ = ui_tx_s.send(format!(
-                                                        "ERROR:{}:Usuario '{}' no registrado en la BDD del Coordinador",
-                                                        file_name, username
-                                                    ));
+            "ERROR:{}:{}:Usuario '{}' no registrado en la BDD del Coordinador",
+            username, file_name, username
+        ));
                                                 }
                                                 processed_files
                                                     .insert(path_str.clone(), modified_time);
