@@ -58,7 +58,7 @@ impl Database {
             .get_task_status_by_id(task_id)
             .map_err(|e| format!("Error al consultar la tarea {}: {}", task_id, e))?;
 
-        if estado_actual != "SLEEPING" {
+        if estado_actual != "SLEEPING" && estado_actual != "RUNNING"{
             return Err(format!(
                 "Transición inválida: No se puede pasar a PENDING una tarea en estado {}",
                 estado_actual
@@ -158,7 +158,8 @@ impl Database {
                 FROM dependencies d 
                 JOIN tasks dep_t ON d.depends_on_id = dep_t.id 
                 WHERE dep_t.status != 'SUCCESS'
-            )",
+            )
+            ORDER BY t.id ASC",
         )?;
 
         let rows = stmt.query_map([], |row| {

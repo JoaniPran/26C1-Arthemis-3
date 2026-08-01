@@ -84,7 +84,7 @@ impl WorkerHandler {
                 id, task_id
             );
             let db = self.database.lock().unwrap();
-            // let _ = db.clear_task_logs(task_id);
+            let _ = db.clear_task_logs(task_id);
             let _ = db.set_task_pending(task_id);
 
             if let Some(tx) = &self.ui_tx {
@@ -173,7 +173,7 @@ impl WorkerHandler {
                 println!("Reasignando tarea huérfana (ID: {}) a PENDING...", task_id);
 
                 let db = self.database.lock().unwrap();
-                // let _ = db.clear_task_logs(task_id);
+                let _ = db.clear_task_logs(task_id);
                 let _ = db.set_task_pending(task_id);
 
                 if let Some(tx) = &self.ui_tx {
