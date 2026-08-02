@@ -78,9 +78,9 @@ pub fn draw_import_modal(ctx: &egui::Context, ui_state: &mut UiState) {
             let is_hovering_file = ctx.input(|i| !i.raw.hovered_files.is_empty());
 
             let (stroke_color, stroke_width, bg_color) = if is_hovering_file {
-                (Theme::DROPZONE_HOVER_STROKE, 3.0, Theme::DROPZONE_HOVER_BG)
+                (Theme::DROPZONE_HOVER_STROKE, 3.0_f32, Theme::DROPZONE_HOVER_BG)
             } else {
-                (Theme::DROPZONE_IDLE_STROKE, 2.0, Theme::DROPZONE_IDLE_BG)
+                (Theme::DROPZONE_IDLE_STROKE, 2.0_f32, Theme::DROPZONE_IDLE_BG)
             };
 
             egui::Frame::none()

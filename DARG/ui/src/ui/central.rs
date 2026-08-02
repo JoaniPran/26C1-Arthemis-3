@@ -151,7 +151,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &UiState, core_state: &mut CoreState)
                 egui::Frame::none().inner_margin(20.0).show(ui, |ui| {
                     egui::Frame::none()
                         .fill(Theme::BG_CENTRAL_PANEL)
-                        .stroke(egui::Stroke::new(0.5, Theme::BORDER_LIGHT))
+                        .stroke(egui::Stroke::new(0.5_f32, Theme::BORDER_LIGHT))
                         .rounding(6.0)
                         .inner_margin(egui::Margin {
                             left: 8.0,

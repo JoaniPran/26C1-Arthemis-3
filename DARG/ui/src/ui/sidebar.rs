@@ -129,7 +129,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut UiState, core_state: &mut CoreSt
             ui.painter().vline(
                 rect.right(),
                 rect.y_range(),
-                egui::Stroke::new(1.0, Theme::BORDER_DARK),
+                egui::Stroke::new(1.0_f32, Theme::BORDER_DARK),
             );
         });
 }
